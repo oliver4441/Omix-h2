@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const gradeRecordSchema = z.object({
@@ -14,8 +15,21 @@ const gradeRecordSchema = z.object({
 
 const batchGradeSchema = z.array(gradeRecordSchema);
 
+export async function authGuard(request: NextRequest) {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  return (session.user as any).schoolId;
+}
+
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const examId = searchParams.get("examId") || "";
     const classId = searchParams.get("classId") || "";
@@ -31,6 +45,7 @@ export async function GET(request: NextRequest) {
     if (classId) where.classId = classId;
     if (studentId) where.studentId = studentId;
     if (subjectId) where.subjectId = subjectId;
+    if (schoolId) where.schoolId = schoolId;
 
     const [grades, total] = await Promise.all([
       prisma.grade.findMany({

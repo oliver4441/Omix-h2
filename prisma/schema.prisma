@@ -7,13 +7,45 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model School {
+  id         String   @id @default(cuid())
+  name       String
+  slug       String   @unique
+  subdomain  String   @unique
+  address    String?
+  phone      String?
+  email      String?
+  logo       String?
+  isActive   Boolean  @default(false)
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  users           User[]
+  students        Student[]
+  teachers        Teacher[]
+  classes         Class[]
+  subjects        Subject[]
+  enrollments     Enrollment[]
+  attendance      Attendance[]
+  exams           Exam[]
+  grades          Grade[]
+  feeStructures   FeeStructure[]
+  feePayments     FeePayment[]
+  timetables      Timetable[]
+  announcements   Announcement[]
+  aiConversations AiConversation[]
+}
+
 model User {
   id        String   @id @default(cuid())
   email     String   @unique
   name      String
   password  String
-  role      String   @default("admin") // admin, teacher, staff
+  role      String   @default("school_admin") // super_admin, school_admin, teacher, staff
   image     String?
+  schoolId  String?
+  school    School?  @relation(fields: [schoolId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -23,7 +55,7 @@ model User {
 
 model Student {
   id            String   @id @default(cuid())
-  admissionNo   String   @unique
+  admissionNo   String
   firstName     String
   lastName      String
   gender        String   // male, female
@@ -34,75 +66,93 @@ model Student {
   guardianName  String?
   guardianPhone String?
   guardianEmail String?
-  status        String   @default("active") // active, graduated, transferred
+  status        String   @default("active")
+  schoolId      String
+  school        School   @relation(fields: [schoolId], references: [id])
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  enrollments  Enrollment[]
-  attendance   Attendance[]
-  grades       Grade[]
-  feePayments  FeePayment[]
+  enrollments Enrollment[]
+  attendance  Attendance[]
+  grades      Grade[]
+  feePayments FeePayment[]
+
+  @@unique([admissionNo, schoolId])
 }
 
 model Teacher {
-  id            String   @id @default(cuid())
-  employeeNo    String   @unique
-  firstName     String
-  lastName      String
-  gender        String?
-  phone         String?
-  email         String?
-  qualification String?
-  specialization String?
-  dateOfBirth   DateTime?
-  address       String?
-  status        String   @default("active")
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id              String   @id @default(cuid())
+  employeeNo      String
+  firstName       String
+  lastName        String
+  gender          String?
+  phone           String?
+  email           String?
+  qualification   String?
+  specialization  String?
+  dateOfBirth     DateTime?
+  address         String?
+  status          String   @default("active")
+  schoolId        String
+  school          School   @relation(fields: [schoolId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  classes        Class[]
-  subjects       Subject[]
+  classes  Class[]
+  subjects Subject[]
+
+  @@unique([employeeNo, schoolId])
 }
 
 model Class {
   id             String   @id @default(cuid())
-  name           String   // e.g., "Grade 8A", "Form 1B"
-  code           String   @unique
-  academicYear   String   // e.g., "2026"
+  name           String
+  code           String
+  academicYear   String
   capacity       Int?
   teacherId      String?
   teacher        Teacher? @relation(fields: [teacherId], references: [id])
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id])
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  enrollments    Enrollment[]
-  attendance     Attendance[]
-  timetable      Timetable[]
-  subjects       Subject[]
+  enrollments Enrollment[]
+  attendance  Attendance[]
+  timetable   Timetable[]
+  subjects    Subject[]
+
+  @@unique([code, schoolId])
 }
 
 model Subject {
   id        String   @id @default(cuid())
-  name      String   // e.g., "Mathematics"
-  code      String   @unique
-  category  String?  // core, elective, extracurricular
+  name      String
+  code      String
+  category  String?
   teacherId String?
   teacher   Teacher? @relation(fields: [teacherId], references: [id])
   classId   String?
   class     Class?   @relation(fields: [classId], references: [id])
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
   createdAt DateTime @default(now())
 
   grades    Grade[]
   timetable Timetable[]
+
+  @@unique([code, schoolId])
 }
 
 model Enrollment {
-  id        String   @id @default(cuid())
-  studentId String
-  classId   String
+  id           String   @id @default(cuid())
+  studentId    String
+  classId      String
   academicYear String
-  date      DateTime @default(now())
-  status    String   @default("active") // active, completed, withdrawn
+  date         DateTime @default(now())
+  status       String   @default("active")
+  schoolId     String
+  school       School   @relation(fields: [schoolId], references: [id])
 
   student Student @relation(fields: [studentId], references: [id])
   class   Class   @relation(fields: [classId], references: [id])
@@ -117,6 +167,8 @@ model Attendance {
   date      DateTime
   status    String   // present, absent, late, excused
   remarks   String?
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
   createdAt DateTime @default(now())
 
   student Student @relation(fields: [studentId], references: [id])
@@ -127,27 +179,31 @@ model Attendance {
 
 model Exam {
   id          String   @id @default(cuid())
-  name        String   // e.g., "Mid-Term Examination"
-  term        String   // Term 1, 2, 3
+  name        String
+  term        String
   academicYear String
   startDate   DateTime
   endDate     DateTime
   description String?
+  schoolId    String
+  school      School   @relation(fields: [schoolId], references: [id])
   createdAt   DateTime @default(now())
 
-  grades      Grade[]
+  grades Grade[]
 }
 
 model Grade {
-  id         String   @id @default(cuid())
-  studentId  String
-  subjectId  String
-  examId     String
-  classId    String
-  score      Float?
-  grade      String?  // A, B, C, D, E
-  remarks    String?
-  createdAt  DateTime @default(now())
+  id        String   @id @default(cuid())
+  studentId String
+  subjectId String
+  examId    String
+  classId   String
+  score     Float?
+  grade     String?
+  remarks   String?
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
+  createdAt DateTime @default(now())
 
   student Student @relation(fields: [studentId], references: [id])
   subject Subject @relation(fields: [subjectId], references: [id])
@@ -157,16 +213,18 @@ model Grade {
 }
 
 model FeeStructure {
-  id          String   @id @default(cuid())
-  name        String   // e.g., "Tuition Fee", "Transport Fee"
-  amount      Float
-  frequency   String   @default("term") // term, monthly, yearly
+  id           String   @id @default(cuid())
+  name         String
+  amount       Float
+  frequency    String   @default("term")
   academicYear String
-  classId     String?
-  description String?
-  createdAt   DateTime @default(now())
+  classId      String?
+  description  String?
+  schoolId     String
+  school       School   @relation(fields: [schoolId], references: [id])
+  createdAt    DateTime @default(now())
 
-  payments    FeePayment[]
+  payments FeePayment[]
 }
 
 model FeePayment {
@@ -176,11 +234,13 @@ model FeePayment {
   userId         String
   amount         Float
   paymentDate    DateTime @default(now())
-  method         String   @default("cash") // cash, mpesa, bank, card
+  method         String   @default("cash")
   transactionRef String?
   term           String
   academicYear   String
   notes          String?
+  schoolId       String
+  school         School   @relation(fields: [schoolId], references: [id])
   createdAt      DateTime @default(now())
 
   feeStructure FeeStructure @relation(fields: [feeStructureId], references: [id])
@@ -192,10 +252,12 @@ model Timetable {
   id        String   @id @default(cuid())
   classId   String
   subjectId String
-  dayOfWeek Int      // 0=Monday, 1=Tuesday, etc.
-  startTime String   // "08:00"
-  endTime   String   // "08:45"
+  dayOfWeek Int
+  startTime String
+  endTime   String
   room      String?
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
   createdAt DateTime @default(now())
 
   class   Class   @relation(fields: [classId], references: [id])
@@ -207,19 +269,23 @@ model Announcement {
   title     String
   content   String
   authorId  String
-  priority  String   @default("normal") // low, normal, high, urgent
-  target    String   @default("all") // all, students, teachers, class
+  priority  String   @default("normal")
+  target    String   @default("all")
   classId   String?
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  author User    @relation(fields: [authorId], references: [id])
+  author User @relation(fields: [authorId], references: [id])
 }
 
 model AiConversation {
   id        String   @id @default(cuid())
   userId    String
-  role      String   // user, assistant
+  role      String
   content   String
+  schoolId  String
+  school    School   @relation(fields: [schoolId], references: [id])
   createdAt DateTime @default(now())
 }

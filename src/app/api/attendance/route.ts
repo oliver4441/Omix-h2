@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const attendanceRecordSchema = z.object({
@@ -14,6 +15,11 @@ const batchAttendanceSchema = z.array(attendanceRecordSchema);
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const classId = searchParams.get("classId") || "";
     const date = searchParams.get("date") || "";
@@ -37,6 +43,7 @@ export async function GET(request: NextRequest) {
         lt: nextDate,
       };
     }
+    if (schoolId) where.schoolId = schoolId;
 
     const [records, total] = await Promise.all([
       prisma.attendance.findMany({
@@ -83,6 +90,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const body = await request.json();
     const records = batchAttendanceSchema.parse(body);
 
@@ -107,6 +119,7 @@ export async function POST(request: NextRequest) {
             date: dateValue,
             status: record.status,
             remarks: record.remarks ?? null,
+            ...(schoolId ? { schoolId } : {}),
           },
           include: {
             student: {

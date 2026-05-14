@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const teacherUpdateSchema = z.object({
@@ -21,10 +22,15 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
 
     const teacher = await prisma.teacher.findUnique({
-      where: { id },
+      where: { id, ...(schoolId ? { schoolId } : {}) },
       include: {
         classes: {
           include: {
@@ -60,11 +66,18 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
     const body = await request.json();
     const data = teacherUpdateSchema.parse(body);
 
-    const existing = await prisma.teacher.findUnique({ where: { id } });
+    const existing = await prisma.teacher.findUnique({
+      where: { id, ...(schoolId ? { schoolId } : {}) },
+    });
     if (!existing) {
       return NextResponse.json(
         { error: "Teacher not found" },
@@ -73,7 +86,7 @@ export async function PATCH(
     }
 
     const teacher = await prisma.teacher.update({
-      where: { id },
+      where: { id, ...(schoolId ? { schoolId } : {}) },
       data: {
         ...(data.employeeNo !== undefined && { employeeNo: data.employeeNo }),
         ...(data.firstName !== undefined && { firstName: data.firstName }),
@@ -110,9 +123,16 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
 
-    const existing = await prisma.teacher.findUnique({ where: { id } });
+    const existing = await prisma.teacher.findUnique({
+      where: { id, ...(schoolId ? { schoolId } : {}) },
+    });
     if (!existing) {
       return NextResponse.json(
         { error: "Teacher not found" },

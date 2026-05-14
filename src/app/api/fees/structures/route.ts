@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const feeStructureSchema = z.object({
@@ -13,6 +14,11 @@ const feeStructureSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const academicYear = searchParams.get("academicYear") || "";
     const classId = searchParams.get("classId") || "";
@@ -24,6 +30,7 @@ export async function GET(request: NextRequest) {
 
     if (academicYear) where.academicYear = academicYear;
     if (classId) where.classId = classId;
+    if (schoolId) where.schoolId = schoolId;
 
     const [structures, total] = await Promise.all([
       prisma.feeStructure.findMany({
@@ -57,6 +64,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const body = await request.json();
     const data = feeStructureSchema.parse(body);
 
@@ -68,6 +80,7 @@ export async function POST(request: NextRequest) {
         academicYear: data.academicYear,
         classId: data.classId,
         description: data.description,
+        ...(schoolId ? { schoolId } : {}),
       },
     });
 

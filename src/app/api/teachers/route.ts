@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 
 const teacherSchema = z.object({
   employeeNo: z.string().min(1, "Employee number is required"),
@@ -18,6 +19,15 @@ const teacherSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
@@ -26,6 +36,8 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
+
+    if (schoolId) where.schoolId = schoolId;
 
     if (search) {
       where.OR = [

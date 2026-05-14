@@ -1,10 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const academicYear = searchParams.get("academicYear") || new Date().getFullYear().toString();
+
+    // Base where clauses scoped by schoolId (null for super_admin means no filter)
+    const studentWhere: any = { status: "active" };
+    const teacherWhere: any = { status: "active" };
+    const classWhere: any = { academicYear };
+    const feePaymentWhere: any = {};
+    const enrollmentWhere: any = {};
+
+    if (schoolId) {
+      studentWhere.schoolId = schoolId;
+      teacherWhere.schoolId = schoolId;
+      classWhere.schoolId = schoolId;
+      feePaymentWhere.schoolId = schoolId;
+      enrollmentWhere.schoolId = schoolId;
+    }
 
     const [
       totalStudents,
@@ -20,22 +45,24 @@ export async function GET(request: NextRequest) {
       feeCollectionByMonth,
     ] = await Promise.all([
       // Total active students
-      prisma.student.count({ where: { status: "active" } }),
+      prisma.student.count({ where: studentWhere }),
 
       // Total active teachers
-      prisma.teacher.count({ where: { status: "active" } }),
+      prisma.teacher.count({ where: teacherWhere }),
 
       // Total classes for current academic year
-      prisma.class.count({ where: { academicYear } }),
+      prisma.class.count({ where: classWhere }),
 
       // Attendance rate calculation
       prisma.attendance.groupBy({
         by: ["status"],
         _count: { id: true },
+        where: schoolId ? { student: { schoolId } } : undefined,
       }),
 
       // Recent payments (last 5)
       prisma.feePayment.findMany({
+        where: Object.keys(feePaymentWhere).length > 0 ? feePaymentWhere : undefined,
         take: 5,
         orderBy: { paymentDate: "desc" },
         include: {
@@ -55,6 +82,7 @@ export async function GET(request: NextRequest) {
 
       // Recent activity: students
       prisma.student.findMany({
+        where: schoolId ? { schoolId } : undefined,
         take: 5,
         orderBy: { createdAt: "desc" },
         select: {
@@ -68,6 +96,7 @@ export async function GET(request: NextRequest) {
 
       // Recent activity: teachers
       prisma.teacher.findMany({
+        where: schoolId ? { schoolId } : undefined,
         take: 5,
         orderBy: { createdAt: "desc" },
         select: {
@@ -81,6 +110,7 @@ export async function GET(request: NextRequest) {
 
       // Recent activity: classes
       prisma.class.findMany({
+        where: schoolId ? { schoolId, ...classWhere } : classWhere,
         take: 5,
         orderBy: { createdAt: "desc" },
         select: {
@@ -93,6 +123,7 @@ export async function GET(request: NextRequest) {
 
       // Recent activity: enrollments
       prisma.enrollment.findMany({
+        where: schoolId ? { schoolId } : undefined,
         take: 5,
         orderBy: { date: "desc" },
         include: {
@@ -107,7 +138,7 @@ export async function GET(request: NextRequest) {
 
       // Student enrollment by class
       prisma.class.findMany({
-        where: { academicYear },
+        where: schoolId ? { schoolId, academicYear } : { academicYear },
         select: {
           id: true,
           name: true,
@@ -122,6 +153,7 @@ export async function GET(request: NextRequest) {
       // Fee collection by month (last 12 months)
       prisma.feePayment.findMany({
         where: {
+          ...(schoolId ? { schoolId } : {}),
           paymentDate: {
             gte: new Date(new Date().getFullYear() - 1, new Date().getMonth(), 1),
           },

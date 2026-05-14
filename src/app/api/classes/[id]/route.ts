@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 
 const classUpdateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -15,10 +16,19 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
 
-    const classRecord = await prisma.class.findUnique({
-      where: { id },
+    const classRecord = await prisma.class.findFirst({
+      where: { id, ...(schoolId ? { schoolId } : {}) },
       include: {
         teacher: {
           select: {
@@ -98,11 +108,20 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
     const body = await request.json();
     const data = classUpdateSchema.parse(body);
 
-    const existing = await prisma.class.findUnique({ where: { id } });
+    const existing = await prisma.class.findFirst({ where: { id, ...(schoolId ? { schoolId } : {}) } });
     if (!existing) {
       return NextResponse.json(
         { error: "Class not found" },
@@ -151,9 +170,18 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
 
-    const existing = await prisma.class.findUnique({ where: { id } });
+    const existing = await prisma.class.findFirst({ where: { id, ...(schoolId ? { schoolId } : {}) } });
     if (!existing) {
       return NextResponse.json(
         { error: "Class not found" },

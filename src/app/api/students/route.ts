@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { auth } from "@/lib/auth";
 
 const studentSchema = z.object({
   admissionNo: z.string().min(1, "Admission number is required"),
@@ -21,6 +22,15 @@ const studentSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const classId = searchParams.get("classId") || "";
@@ -30,6 +40,8 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     const where: any = {};
+
+    if (schoolId) where.schoolId = schoolId;
 
     if (search) {
       where.OR = [
@@ -88,6 +100,15 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const schoolId = (session.user as any).schoolId;
     const body = await request.json();
     const data = studentSchema.parse(body);
 
@@ -105,6 +126,7 @@ export async function POST(request: NextRequest) {
         guardianPhone: data.guardianPhone,
         guardianEmail: data.guardianEmail || null,
         status: data.status,
+        ...(schoolId ? { schoolId } : {}),
       },
     });
 
@@ -116,6 +138,7 @@ export async function POST(request: NextRequest) {
           classId: data.classId,
           academicYear: data.academicYear,
           status: "active",
+          ...(schoolId ? { schoolId } : {}),
         },
       });
     }

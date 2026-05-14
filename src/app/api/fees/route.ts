@@ -17,6 +17,11 @@ const feePaymentSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const studentId = searchParams.get("studentId") || "";
     const term = searchParams.get("term") || "";
@@ -32,6 +37,7 @@ export async function GET(request: NextRequest) {
     if (term) where.term = term;
     if (academicYear) where.academicYear = academicYear;
     if (feeStructureId) where.feeStructureId = feeStructureId;
+    if (schoolId) where.schoolId = schoolId;
 
     const [payments, totalPayments] = await Promise.all([
       prisma.feePayment.findMany({
@@ -93,12 +99,9 @@ export async function POST(request: NextRequest) {
   try {
     const session = await auth();
     if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
+    const schoolId = (session.user as any).schoolId;
     const body = await request.json();
     const data = feePaymentSchema.parse(body);
 
@@ -114,6 +117,7 @@ export async function POST(request: NextRequest) {
         term: data.term,
         academicYear: data.academicYear,
         notes: data.notes ?? null,
+        ...(schoolId ? { schoolId } : {}),
       },
       include: {
         feeStructure: {

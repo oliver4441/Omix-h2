@@ -1,9 +1,10 @@
 "use client";
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
-import { Eye, EyeOff, LogIn, GraduationCap, Sparkles } from "lucide-react";
+import { Eye, EyeOff, LogIn, GraduationCap, Sparkles, Building2 } from "lucide-react";
+import Link from "next/link";
 
 function LoginForm() {
   const searchParams = useSearchParams();
@@ -12,8 +13,23 @@ function LoginForm() {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [school, setSchool] = useState<{ name: string; slug: string } | null>(null);
 
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard";
+
+  useEffect(() => {
+    // Detect school context from cookie set by middleware
+    const cookies = document.cookie.split("; ");
+    const schoolCookie = cookies.find((c) => c.startsWith("x-school-slug="));
+    const slug = schoolCookie?.split("=")[1];
+    if (slug) {
+      // Show school name in UI
+      const names: Record<string, string> = {
+        demo: "Omix Demo Academy",
+      };
+      setSchool({ name: names[slug] || slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), slug });
+    }
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -24,6 +40,7 @@ function LoginForm() {
       const result = await signIn("credentials", {
         email,
         password,
+        schoolSlug: school?.slug || "",
         redirect: false,
         callbackUrl,
       });
@@ -99,6 +116,21 @@ function LoginForm() {
           </motion.p>
         </div>
 
+        {/* School Info Banner */}
+        {school && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mb-4 p-3 bg-omix-500/10 border border-omix-500/20 rounded-xl flex items-center gap-3"
+          >
+            <Building2 className="w-5 h-5 text-omix-400 shrink-0" />
+            <div className="text-sm">
+              <span className="text-gray-400">Signing in to </span>
+              <span className="text-omix-300 font-medium">{school.name}</span>
+            </div>
+          </motion.div>
+        )}
+
         {/* Login Card */}
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
@@ -120,7 +152,7 @@ function LoginForm() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@omixsystems.com"
+                placeholder="you@school.com"
                 required
                 className="w-full px-4 py-3 bg-surface-2 border border-border rounded-xl text-gray-100 placeholder-gray-500 focus:outline-none input-glow transition-all"
               />
@@ -179,13 +211,20 @@ function LoginForm() {
             </button>
           </form>
 
-          <div className="mt-6 pt-6 border-t border-border">
+          <div className="mt-6 pt-6 border-t border-border space-y-3">
             <p className="text-xs text-gray-500 text-center">
               Powered by <span className="text-omix-400">omixsystems</span> AI
             </p>
+            {!school && (
+              <p className="text-xs text-gray-500 text-center">
+                <Link href="/register" className="text-omix-400 hover:text-omix-300 transition-colors">
+                  Don&apos;t have an account? Register your school
+                </Link>
+              </p>
+            )}
           </div>
         </motion.div>
-        </motion.div>
+      </motion.div>
     </div>
   );
 }

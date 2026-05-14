@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const examSchema = z.object({
@@ -13,6 +14,11 @@ const examSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const academicYear = searchParams.get("academicYear") || "";
     const term = searchParams.get("term") || "";
@@ -24,6 +30,7 @@ export async function GET(request: NextRequest) {
 
     if (academicYear) where.academicYear = academicYear;
     if (term) where.term = term;
+    if (schoolId) where.schoolId = schoolId;
 
     const [exams, total] = await Promise.all([
       prisma.exam.findMany({
@@ -57,6 +64,11 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const body = await request.json();
     const data = examSchema.parse(body);
 
@@ -68,6 +80,7 @@ export async function POST(request: NextRequest) {
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         description: data.description,
+        ...(schoolId ? { schoolId } : {}),
       },
     });
 

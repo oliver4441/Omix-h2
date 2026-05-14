@@ -13,6 +13,11 @@ const announcementSchema = z.object({
 
 export async function GET(request: NextRequest) {
   try {
+    const session = await auth();
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const target = searchParams.get("target") || "";
     const priority = searchParams.get("priority") || "";
@@ -24,6 +29,7 @@ export async function GET(request: NextRequest) {
 
     if (target) where.target = target;
     if (priority) where.priority = priority;
+    if (schoolId) where.schoolId = schoolId;
 
     const [announcements, total] = await Promise.all([
       prisma.announcement.findMany({
@@ -98,6 +104,7 @@ export async function POST(request: NextRequest) {
         priority: data.priority,
         target: data.target,
         classId: data.classId ?? null,
+        schoolId: session.user?.schoolId || null,
       },
       include: {
         author: {

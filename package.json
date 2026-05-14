@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",
-    "@prisma/client": "^6.0.0",
+    "@prisma/client": "^6.19.3",
     "bcryptjs": "^2.4.3",
     "clsx": "^2.1.0",
     "framer-motion": "^11.0.0",
