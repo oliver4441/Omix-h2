@@ -12,7 +12,7 @@ async function requireSuperAdmin(): Promise<NextResponse | null> {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userRole = (session.user as Record<string, unknown>).role;
+  const userRole = (session.user as any).role;
   if (userRole !== "super_admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }

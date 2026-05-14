@@ -28,7 +28,7 @@ async function requireSuperAdmin(): Promise<NextResponse | null> {
   if (!session?.user) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  const userRole = (session.user as Record<string, unknown>).role;
+  const userRole = (session.user as any).role;
   if (userRole !== "super_admin") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -162,10 +162,9 @@ export async function POST(request: NextRequest) {
       error &&
       typeof error === "object" &&
       "code" in error &&
-      (error as Record<string, unknown>).code === "P2002"
+      (error as any).code === "P2002"
     ) {
-      const target = (error as Record<string, unknown>).meta as Record<string, string[]> | undefined;
-      const fields = target?.target ?? [];
+      const fields: string[] = (error as any).meta?.target ?? [];
 
       if (fields.includes("email")) {
         return NextResponse.json(
