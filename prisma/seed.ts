@@ -15,6 +15,13 @@ async function main() {
 
   console.log('🌱 Seeding database...');
 
+  // Check if already seeded
+  const existingAdmin = await prisma.user.findUnique({ where: { email: 'admin@omixsystems.com' } });
+  if (existingAdmin) {
+    console.log('✅ Database already seeded, skipping...');
+    return;
+  }
+
   // 1. School
   const sc = await prisma.school.upsert({
     where: { slug: 'demo' },
