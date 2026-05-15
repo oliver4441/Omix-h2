@@ -45,8 +45,8 @@ function LoginForm() {
         callbackUrl,
       });
 
-      if (result?.error) {
-        setError("Invalid email or password");
+      if (!result || result?.error) {
+        setError(result?.error === "CredentialsSignin" ? "Invalid email or password" : "Login failed. Please check your credentials.");
         setLoading(false);
         return;
       }

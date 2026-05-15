@@ -6,12 +6,15 @@ const publicPaths = ["/login", "/register", "/api/auth"];
 
 function getSubdomain(host: string | null): string | null {
   if (!host) return null;
-  // Match *.onrender.com or *.localhost or custom domain patterns
   const parts = host.split(".");
   // onrender.com or render.com: first part is subdomain if there are 3+ parts
   // e.g., st-marys.omix-h2.onrender.com -> subdomain = "st-marys"
+  // BUT: omix-h2.onrender.com (main domain) -> not a subdomain
   if (parts.length >= 3 && (host.includes("onrender") || host.includes("render"))) {
-    return parts[0];
+    // Main Render domain has format: service-name.onrender.com (3 parts)
+    // Subdomain format: sub.service-name.onrender.com (4+ parts)
+    if (parts.length >= 4) return parts[0];
+    return null;
   }
   // localhost: host like "st-marys.localhost:3000"
   if (host.includes("localhost") && parts.length >= 3) {
