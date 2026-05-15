@@ -1,14 +1,14 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Optimize builds for memory-constrained environments (Render free tier)
-  experimental: {
-    optimizePackageImports: ["lucide-react", "framer-motion", "@prisma/client"],
+  // Tell Next.js where the project root is (avoids parent lockfile confusion)
+  turbopack: {
+    root: process.cwd(),
   },
-  // Reduce JS bundle size
-  swcMinify: true,
-  // Enable gzip compression
-  compress: true,
+  // Reduce build memory on constrained environments (Render free tier)
+  experimental: {
+    optimizePackageImports: ["lucide-react", "framer-motion"],
+  },
   // Disable source maps in production to reduce build memory
   productionBrowserSourceMaps: false,
 };
