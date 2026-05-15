@@ -19,6 +19,7 @@ import {
 import { cn, formatDate } from "@/lib/utils";
 import StatCard from "@/components/ui/StatCard";
 import DataTable from "@/components/ui/DataTable";
+export const dynamic = 'force-dynamic';
 
 interface Meeting {
   id: string;

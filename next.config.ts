@@ -5,11 +5,13 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: process.cwd(),
   },
-  // Reduce build memory on constrained environments (Render free tier)
+  // Optimize builds for memory-constrained environments
   experimental: {
     optimizePackageImports: ["lucide-react", "framer-motion"],
+    // Use lightningcss for CSS handling instead of PostCSS (avoids Turbopack worker crash)
+    useLightningcss: true,
   },
-  // Disable source maps in production to reduce build memory
+  // Disable source maps in production to reduce bundle size
   productionBrowserSourceMaps: false,
 };
 

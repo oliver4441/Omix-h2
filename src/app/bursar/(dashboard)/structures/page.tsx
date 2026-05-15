@@ -15,6 +15,7 @@ import {
 import { cn, formatCurrency } from "@/lib/utils";
 import Modal from "@/components/ui/Modal";
 import { z } from "zod";
+export const dynamic = 'force-dynamic';
 
 interface FeeStructure {
   id: string;

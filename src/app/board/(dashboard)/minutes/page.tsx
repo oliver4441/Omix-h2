@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import DataTable from "@/components/ui/DataTable";
+export const dynamic = 'force-dynamic';
 
 interface MeetingMinute {
   id: string;

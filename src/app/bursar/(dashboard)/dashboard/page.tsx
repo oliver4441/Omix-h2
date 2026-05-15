@@ -17,6 +17,7 @@ import {
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import StatCard from "@/components/ui/StatCard";
 import DataTable from "@/components/ui/DataTable";
+export const dynamic = 'force-dynamic';
 
 interface RecentPayment {
   id: string;

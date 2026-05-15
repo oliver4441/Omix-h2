@@ -24,6 +24,7 @@ import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import DataTable from "@/components/ui/DataTable";
 import Modal from "@/components/ui/Modal";
 import StatCard from "@/components/ui/StatCard";
+export const dynamic = 'force-dynamic';
 
 interface FeeStructure {
   id: string;

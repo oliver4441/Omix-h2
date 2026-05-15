@@ -2,6 +2,7 @@
 import { Suspense } from "react";
 import DepartmentLogin from "@/components/auth/DepartmentLogin";
 import { BookOpen } from "lucide-react";
+export const dynamic = 'force-dynamic';
 
 function LibraryLoginPage() {
   return (

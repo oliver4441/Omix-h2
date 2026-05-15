@@ -37,6 +37,7 @@ import {
 import StatCard from "@/components/ui/StatCard";
 import Link from "next/link";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
+export const dynamic = 'force-dynamic';
 
 interface OverviewData {
   totalStudents: number;

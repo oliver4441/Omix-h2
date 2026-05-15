@@ -18,6 +18,7 @@ import {
 import { cn } from "@/lib/utils";
 import StatCard from "@/components/ui/StatCard";
 import DataTable from "@/components/ui/DataTable";
+export const dynamic = 'force-dynamic';
 
 interface ComputerStation {
   id: string;

@@ -19,6 +19,7 @@ import { cn, formatDate } from "@/lib/utils";
 import StatCard from "@/components/ui/StatCard";
 import DataTable from "@/components/ui/DataTable";
 import Modal from "@/components/ui/Modal";
+export const dynamic = 'force-dynamic';
 
 interface PerformanceRecord {
   id: string;
