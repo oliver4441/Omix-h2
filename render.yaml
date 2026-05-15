@@ -3,7 +3,7 @@ services:
     name: omix-sms
     env: node
     buildCommand: npm install && npx prisma generate && npx prisma generate --schema=prisma/local-schema.prisma && npm run next-build
-    startCommand: npx prisma db push && npm run db:seed || true && npm start
+    startCommand: npx prisma db push && npm run db:seed && npm start
     healthCheckPath: /login
     envVars:
       - key: NODE_VERSION
@@ -13,8 +13,6 @@ services:
       - key: NEXTAUTH_URL
         value: https://omix-h2.onrender.com
       - key: DATABASE_URL
-        value: file:/tmp/dev.db
-      - key: DIRECT_URL
         value: file:/tmp/dev.db
       - key: SQLITE_URL
         value: file:/tmp/dev.db
