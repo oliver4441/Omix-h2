@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { signIn } from "next-auth/react";
 import { motion } from "framer-motion";
 import { Eye, EyeOff, LogIn, School, AlertCircle } from "lucide-react";
@@ -32,6 +32,18 @@ const roleLabels: Record<string, string> = {
 };
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <div className="w-8 h-8 border-2 border-omix-500/30 border-t-omix-500 rounded-full animate-spin" />
+      </div>
+    }>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const searchParams = useSearchParams();
   const params = useParams();
   const [email, setEmail] = useState("");
