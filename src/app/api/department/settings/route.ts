@@ -68,6 +68,30 @@ export async function PUT(request: NextRequest) {
 
     const userId = session.user.id;
     const body = await request.json();
+
+    // Profile update — name and/or email
+    if (body.name || body.email) {
+      const updateData: any = {};
+      if (body.name) updateData.name = body.name;
+      if (body.email) updateData.email = body.email;
+
+      // Check email uniqueness if changing
+      if (body.email && body.email !== session.user.email) {
+        const existing = await prisma.user.findUnique({ where: { email: body.email } });
+        if (existing && existing.id !== userId) {
+          return NextResponse.json({ error: "Email already in use" }, { status: 400 });
+        }
+      }
+
+      await prisma.user.update({
+        where: { id: userId },
+        data: updateData,
+      });
+
+      return NextResponse.json({ success: true, message: "Profile updated" });
+    }
+
+    // Password change
     const data = updatePasswordSchema.parse(body);
 
     const user = await prisma.user.findUnique({

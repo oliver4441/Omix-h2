@@ -49,7 +49,7 @@ export default function DepartmentLogin({
       const sessionRes = await fetch("/api/auth/session");
       const session = await sessionRes.json();
 
-      if (session?.user?.role !== requiredRole && session?.user?.role !== "super_admin") {
+      if (session?.user?.role !== requiredRole && session?.user?.role !== "super_admin" && session?.user?.role !== "school_admin") {
         setError(`This account does not have ${departmentName} access. Please use the correct login portal.`);
         setLoading(false);
         return;

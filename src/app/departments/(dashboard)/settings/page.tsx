@@ -1,5 +1,5 @@
 import AccountSettings from "@/components/auth/AccountSettings";
 
-export default function ScienceLabSettingsPage() {
+export default function DepartmentsSettingsPage() {
   return <AccountSettings />;
 }
