@@ -21,7 +21,16 @@ export default auth((req: NextRequest & { auth: any }) => {
   const { pathname } = req.nextUrl;
 
   // Allow static assets
-  if (pathname.startsWith("/_next") || pathname === "/favicon.ico") {
+  if (
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico" ||
+    pathname.startsWith("/manifest") ||
+    pathname.startsWith("/icon") ||
+    pathname.startsWith("/apple-touch-icon") ||
+    pathname.startsWith("/service-worker") ||
+    pathname.startsWith("/sw") ||
+    pathname.match(/\.(png|jpg|jpeg|gif|svg|webp|ico|json|webmanifest)$/)
+  ) {
     return;
   }
 
@@ -64,5 +73,5 @@ export default auth((req: NextRequest & { auth: any }) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|manifest|icon|apple-touch-icon|favicon|service-worker|sw|.*\\.(?:png|jpg|jpeg|gif|svg|webp|ico|json|webmanifest)).*)"],
 };
