@@ -74,7 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
-      const updateData: Record<string, number> = {};
+      const updateData: Record<string, number | { increment: number } | { decrement: number }> = {};
 
       switch (data.action) {
         case "broken":
