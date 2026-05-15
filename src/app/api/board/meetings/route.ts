@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
         endTime: data.endTime,
         venue: data.venue,
         createdById: userId,
-        ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+        ...(schoolId ? { schoolId } : {}),
         ...(data.agendaItems && data.agendaItems.length > 0
           ? {
               agendaItems: {
