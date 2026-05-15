@@ -13,9 +13,9 @@ services:
       - key: NEXTAUTH_URL
         value: https://omix-h2.onrender.com
       - key: DATABASE_URL
-        value: postgresql://postgres:%5BYOUR-PASSWORD%5D@db.dsaajdwjihxnrjzpfhse.supabase.co:5432/postgres
+        value: postgresql://postgres:[YOUR-PASSWORD]@db.dsaajdwjihxnrjzpfhse.supabase.co:5432/postgres
       - key: DIRECT_URL
-        value: postgresql://postgres:%5BYOUR-PASSWORD%5D@db.dsaajdwjihxnrjzpfhse.supabase.co:5432/postgres
+        value: postgresql://postgres:[YOUR-PASSWORD]@db.dsaajdwjihxnrjzpfhse.supabase.co:5432/postgres
       - key: SQLITE_URL
         value: file:./local.db
       - key: AUTH_TRUST_HOST
