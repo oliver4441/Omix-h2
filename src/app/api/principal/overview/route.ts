@@ -119,12 +119,14 @@ export async function GET(request: NextRequest) {
         select: {
           id: true,
           classId: true,
-          className: true,
           meanScore: true,
           subjectId: true,
           examId: true,
           term: true,
           academicYear: true,
+          class: {
+            select: { name: true },
+          },
         },
         orderBy: { createdAt: "desc" },
         take: 50,
@@ -136,7 +138,7 @@ export async function GET(request: NextRequest) {
     performanceData.forEach((p) => {
       if (!p.classId) return;
       const existing = classPerformanceMap.get(p.classId) || {
-        className: p.className || `Class ${p.classId}`,
+        className: p.class?.name || `Class ${p.classId}`,
         subjects: [],
         overallMean: 0,
       };
