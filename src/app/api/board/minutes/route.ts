@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         aiSummary,
         aiProofread,
         recordedById: boardMember.id,
-        ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+        ...(schoolId ? { schoolId } : {}),
       },
       include: {
         meeting: {

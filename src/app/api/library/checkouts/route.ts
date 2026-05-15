@@ -91,7 +91,7 @@ export async function POST(request: NextRequest) {
           studentName: data.studentName,
           dueDate: new Date(data.dueDate),
           status: "active",
-          ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+          ...(schoolId ? { schoolId } : {}),
         },
       });
 

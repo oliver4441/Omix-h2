@@ -93,7 +93,7 @@ export async function POST(request: NextRequest) {
         targetRole: data.targetRole,
         targetDepartmentId: data.targetDepartmentId,
         link: data.link,
-        ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+        ...(schoolId ? { schoolId } : {}),
       },
       include: {
         sender: {

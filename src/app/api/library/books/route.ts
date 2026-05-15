@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
         available: data.quantity,
         shelf: data.shelf,
         category: data.category,
-        ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+        ...(schoolId ? { schoolId } : {}),
       },
     });
 

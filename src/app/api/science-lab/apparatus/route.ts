@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         totalQuantity: data.totalQuantity,
         available: data.totalQuantity,
         description: data.description,
-        ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+        ...(schoolId ? { schoolId } : {}),
       },
     });
 

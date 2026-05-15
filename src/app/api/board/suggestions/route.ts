@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
         category: data.category,
         boardMemberId: boardMember.id,
         ...(data.meetingId ? { meeting: { connect: { id: data.meetingId } } } : {}),
-        ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+        ...(schoolId ? { schoolId } : {}),
       },
       include: {
         boardMember: {

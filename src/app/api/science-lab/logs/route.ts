@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
           quantity: data.quantity,
           notes: data.notes,
           reportedById: userId,
-          ...(schoolId ? { school: { connect: { id: schoolId } } } : {}),
+          ...(schoolId ? { schoolId } : {}),
         },
       });
 
