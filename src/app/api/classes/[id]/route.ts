@@ -139,7 +139,7 @@ export async function PATCH(
         ...(data.teacherId === undefined
           ? {}
           : data.teacherId
-          ? { teacher: { connect: { id: data.teacherId } } }
+          ? { teacherId: data.teacherId }
           : { teacher: { disconnect: true } }),
       },
       include: {

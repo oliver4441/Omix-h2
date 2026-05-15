@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
         code: data.code,
         academicYear: data.academicYear,
         capacity: data.capacity,
-        ...(data.teacherId ? { teacher: { connect: { id: data.teacherId } } } : {}),
+        ...(data.teacherId ? { teacherId: data.teacherId } : {}),
         ...(schoolId ? { schoolId } : {}),
       },
       include: {

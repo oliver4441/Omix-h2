@@ -77,7 +77,6 @@ export async function POST(request: NextRequest) {
         slug: data.slug,
         type: data.type,
         ...(schoolId ? { schoolId } : {}),
-        ...(data.headId ? { users: { connect: { id: data.headId } } } : {}),
       },
       include: {
         _count: {
@@ -85,6 +84,14 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Assign head to department after creation (connect not available in UncheckedInput)
+    if (data.headId) {
+      await prisma.user.update({
+        where: { id: data.headId },
+        data: { departmentId: department.id },
+      });
+    }
 
     return NextResponse.json({ department }, { status: 201 });
   } catch (error) {

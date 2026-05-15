@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
         content: data.content,
         category: data.category,
         boardMemberId: boardMember.id,
-        ...(data.meetingId ? { meeting: { connect: { id: data.meetingId } } } : {}),
+        ...(data.meetingId ? { meetingId: data.meetingId } : {}),
         ...(schoolId ? { schoolId } : {}),
       },
       include: {
