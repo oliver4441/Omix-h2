@@ -4,7 +4,9 @@ import { auth } from "@/lib/auth";
 import { z } from "zod";
 
 const actionSchema = z.object({
-  action: z.enum(["approve", "reject", "activate", "deactivate"]),
+  action: z.enum(["approve", "reject", "activate", "deactivate"]).optional(),
+  isApproved: z.boolean().optional(),
+  isActive: z.boolean().optional(),
 });
 
 async function requireSuperAdmin(): Promise<NextResponse | null> {
@@ -86,7 +88,7 @@ export async function PATCH(
   try {
     const { id } = await params;
     const body = await request.json();
-    const { action } = actionSchema.parse(body);
+    const parsed = actionSchema.parse(body);
 
     const existing = await prisma.school.findUnique({ where: { id } });
     if (!existing) {
@@ -98,19 +100,26 @@ export async function PATCH(
 
     let updateData: Record<string, boolean> = {};
 
-    switch (action) {
-      case "approve":
-        updateData = { isApproved: true };
-        break;
-      case "reject":
-        updateData = { isApproved: false };
-        break;
-      case "activate":
-        updateData = { isActive: true, isApproved: true };
-        break;
-      case "deactivate":
-        updateData = { isActive: false };
-        break;
+    // Support both the old 'action' format and the direct field format
+    if (parsed.action) {
+      switch (parsed.action) {
+        case "approve":
+          updateData = { isApproved: true };
+          break;
+        case "reject":
+          updateData = { isApproved: false };
+          break;
+        case "activate":
+          updateData = { isActive: true, isApproved: true };
+          break;
+        case "deactivate":
+          updateData = { isActive: false };
+          break;
+      }
+    } else {
+      // Direct field update format (isApproved, isActive)
+      if (parsed.isApproved !== undefined) updateData.isApproved = parsed.isApproved;
+      if (parsed.isActive !== undefined) updateData.isActive = parsed.isActive;
     }
 
     const school = await prisma.school.update({
@@ -135,7 +144,7 @@ export async function PATCH(
     };
 
     return NextResponse.json({
-      message: `School ${actionLabels[action]} successfully`,
+      message: `School updated successfully`,
       school,
     });
   } catch (error) {

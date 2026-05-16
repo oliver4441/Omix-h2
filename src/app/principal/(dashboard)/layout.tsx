@@ -15,7 +15,6 @@ import {
   Settings,
   Menu,
   X,
-  ChevronLeft,
   ClipboardList,
   GraduationCap,
   Library,
@@ -54,7 +53,6 @@ export default function PrincipalLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) => {
@@ -67,24 +65,22 @@ export default function PrincipalLayout({
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Brand */}
-      <div className={cn("flex items-center gap-3 px-6 py-6", collapsed && "justify-center px-3")}>
+      <div className="flex items-center gap-3 px-6 py-6">
         <Link href="/principal/dashboard" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center glow-sm flex-shrink-0">
             <GraduationCap className="w-5 h-5 text-white" />
           </div>
-          {!collapsed && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <h1 className="text-sm font-bold gradient-text leading-tight">Principal</h1>
-              <p className="text-[10px] text-gray-500">omixsystems</p>
-            </motion.div>
-          )}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <h1 className="text-sm font-bold gradient-text leading-tight">Principal</h1>
+            <p className="text-[10px] text-gray-500">omixsystems</p>
+          </motion.div>
         </Link>
       </div>
 
       {/* Main Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        <p className={cn("text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-4 mb-2", collapsed && "text-center px-0")}>
-          {collapsed ? "..." : "Command Center"}
+        <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-4 mb-2">
+          Command Center
         </p>
         {PRINCIPAL_NAV_ITEMS.map((item) => {
           const active = isActive(item.href);
@@ -96,7 +92,6 @@ export default function PrincipalLayout({
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative",
-                collapsed && "justify-center px-3",
                 active
                   ? "bg-indigo-500/15 text-indigo-400 border border-indigo-500/20"
                   : "text-gray-400 hover:text-gray-200 hover:bg-white/5 hover:border hover:border-white/5"
@@ -110,36 +105,32 @@ export default function PrincipalLayout({
                 />
               )}
               <ItemIcon className={cn("w-5 h-5 flex-shrink-0 relative z-10", active && "text-indigo-400")} />
-              {!collapsed && (
-                <span className="text-sm font-medium relative z-10">{item.label}</span>
-              )}
+              <span className="text-sm font-medium relative z-10">{item.label}</span>
             </Link>
           );
         })}
 
         {/* Department Quick Links */}
-        {!collapsed && (
-          <div className="pt-6">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-4 mb-2">
-              Departments
-            </p>
-            {DEPARTMENT_LINKS.map((dept) => {
-              const DeptIcon = dept.icon;
-              return (
-                <Link
-                  key={dept.href}
-                  href={dept.href}
-                  className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-all text-sm"
-                >
-                  <div className={cn("w-6 h-6 rounded-lg bg-gradient-to-br flex items-center justify-center", dept.color)}>
-                    <DeptIcon className="w-3.5 h-3.5 text-white" />
-                  </div>
-                  {dept.label}
-                </Link>
-              );
-            })}
-          </div>
-        )}
+        <div className="pt-6">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-gray-500 px-4 mb-2">
+            Departments
+          </p>
+          {DEPARTMENT_LINKS.map((dept) => {
+            const DeptIcon = dept.icon;
+            return (
+              <Link
+                key={dept.href}
+                href={dept.href}
+                className="flex items-center gap-3 px-4 py-2.5 rounded-xl text-gray-400 hover:text-gray-200 hover:bg-white/5 transition-all text-sm"
+              >
+                <div className={cn("w-6 h-6 rounded-lg bg-gradient-to-br flex items-center justify-center", dept.color)}>
+                  <DeptIcon className="w-3.5 h-3.5 text-white" />
+                </div>
+                {dept.label}
+              </Link>
+            );
+          })}
+        </div>
       </nav>
 
       {/* Bottom Settings */}
@@ -148,24 +139,12 @@ export default function PrincipalLayout({
           href="/principal/dashboard/settings"
           className={cn(
             "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-            collapsed && "justify-center px-3",
             "text-gray-400 hover:text-gray-200 hover:bg-white/5"
           )}
         >
           <Settings className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span className="text-sm font-medium">Settings</span>}
+          <span className="text-sm font-medium">Settings</span>
         </Link>
-      </div>
-
-      {/* Collapse toggle */}
-      <div className={cn("px-3 pb-6", collapsed && "flex justify-center")}>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex items-center justify-center w-full py-2 px-4 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all border border-transparent hover:border-white/5 text-sm gap-2"
-        >
-          <ChevronLeft className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} />
-          {!collapsed && <span>Collapse</span>}
-        </button>
       </div>
     </div>
   );
@@ -207,18 +186,13 @@ export default function PrincipalLayout({
         {sidebarContent}
       </motion.aside>
 
-      {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          "hidden lg:flex flex-col fixed left-0 top-0 bottom-0 bg-surface/80 backdrop-blur-xl border-r border-border z-30 transition-all duration-300",
-          collapsed ? "w-20" : "w-64"
-        )}
-      >
+      {/* Desktop sidebar - non-collapsible */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-surface/80 backdrop-blur-xl border-r border-border z-30">
         {sidebarContent}
       </aside>
 
       {/* Main content */}
-      <div className={cn("flex-1 flex flex-col overflow-hidden transition-all duration-300", collapsed ? "lg:ml-20" : "lg:ml-64")}>
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
         <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
       </div>
     </div>

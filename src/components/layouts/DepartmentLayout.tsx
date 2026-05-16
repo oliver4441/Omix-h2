@@ -14,7 +14,6 @@ import {
   Settings,
   Menu,
   X,
-  ChevronLeft,
   ClipboardList,
   Building2,
 } from "lucide-react";
@@ -98,7 +97,6 @@ export default function DepartmentLayout({
   department: string;
 }) {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const config = DEPARTMENT_CONFIGS[department];
@@ -116,17 +114,15 @@ export default function DepartmentLayout({
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Brand */}
-      <div className={cn("flex items-center gap-3 px-6 py-6", collapsed && "justify-center px-3")}>
+      <div className="flex items-center gap-3 px-6 py-6">
         <Link href={`/${config.slug}/dashboard`} className="flex items-center gap-3">
           <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center glow-sm flex-shrink-0", config.color)}>
             <Icon className="w-5 h-5 text-white" />
           </div>
-          {!collapsed && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              <h1 className="text-sm font-bold gradient-text leading-tight">{config.name}</h1>
-              <p className="text-[10px] text-gray-500">omixsystems</p>
-            </motion.div>
-          )}
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <h1 className="text-sm font-bold gradient-text leading-tight">{config.name}</h1>
+            <p className="text-[10px] text-gray-500">omixsystems</p>
+          </motion.div>
         </Link>
       </div>
 
@@ -142,7 +138,6 @@ export default function DepartmentLayout({
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative",
-                collapsed && "justify-center px-3",
                 active
                   ? "bg-omix-500/15 text-omix-400 border border-omix-500/20"
                   : "text-gray-400 hover:text-gray-200 hover:bg-white/5 hover:border hover:border-white/5"
@@ -156,9 +151,7 @@ export default function DepartmentLayout({
                 />
               )}
               <ItemIcon className={cn("w-5 h-5 flex-shrink-0 relative z-10", active && "text-omix-400")} />
-              {!collapsed && (
-                <span className="text-sm font-medium relative z-10">{item.label}</span>
-              )}
+              <span className="text-sm font-medium relative z-10">{item.label}</span>
             </Link>
           );
         })}
@@ -170,24 +163,12 @@ export default function DepartmentLayout({
           href={`/${config.slug}/dashboard/settings`}
           className={cn(
             "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200",
-            collapsed && "justify-center px-3",
             "text-gray-400 hover:text-gray-200 hover:bg-white/5"
           )}
         >
           <Settings className="w-5 h-5 flex-shrink-0" />
-          {!collapsed && <span className="text-sm font-medium">Settings</span>}
+          <span className="text-sm font-medium">Settings</span>
         </Link>
-      </div>
-
-      {/* Collapse toggle */}
-      <div className={cn("px-3 pb-6", collapsed && "flex justify-center")}>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex items-center justify-center w-full py-2 px-4 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all border border-transparent hover:border-white/5 text-sm gap-2"
-        >
-          <ChevronLeft className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} />
-          {!collapsed && <span>Collapse</span>}
-        </button>
       </div>
     </div>
   );
@@ -229,18 +210,13 @@ export default function DepartmentLayout({
         {sidebarContent}
       </motion.aside>
 
-      {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          "hidden lg:flex flex-col fixed left-0 top-0 bottom-0 bg-surface/80 backdrop-blur-xl border-r border-border z-30 transition-all duration-300",
-          collapsed ? "w-20" : "w-64"
-        )}
-      >
+      {/* Desktop sidebar - non-collapsible */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-surface/80 backdrop-blur-xl border-r border-border z-30">
         {sidebarContent}
       </aside>
 
       {/* Main content */}
-      <div className={cn("flex-1 flex flex-col overflow-hidden transition-all duration-300", collapsed ? "lg:ml-20" : "lg:ml-64")}>
+      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
         {/* Notification bell — fixed top-right in the content area */}
         <div className="absolute top-4 right-4 z-40">
           <div className="glass rounded-xl p-1.5 glow-sm">

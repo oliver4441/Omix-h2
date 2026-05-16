@@ -16,7 +16,6 @@ import {
   Bell,
   Menu,
   X,
-  ChevronLeft,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -36,7 +35,6 @@ const sidebarItems = [
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string) => {
@@ -47,21 +45,19 @@ export default function Sidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Brand */}
-      <div className={cn("flex items-center gap-3 px-6 py-6", collapsed && "justify-center px-3")}>
+      <div className="flex items-center gap-3 px-6 py-6">
         <Link href="/dashboard" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-omix-500 to-omix-700 flex items-center justify-center glow-sm flex-shrink-0">
             <span className="text-white font-bold text-sm">OS</span>
           </div>
-          {!collapsed && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <h1 className="text-sm font-bold gradient-text leading-tight">omixsystems</h1>
-              <p className="text-[10px] text-gray-500">School Management</p>
-            </motion.div>
-          )}
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+          >
+            <h1 className="text-sm font-bold gradient-text leading-tight">omixsystems</h1>
+            <p className="text-[10px] text-gray-500">School Management</p>
+          </motion.div>
         </Link>
       </div>
 
@@ -76,7 +72,6 @@ export default function Sidebar() {
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group relative",
-                collapsed && "justify-center px-3",
                 active
                   ? "bg-omix-500/15 text-omix-400 border border-omix-500/20"
                   : "text-gray-400 hover:text-gray-200 hover:bg-white/5 hover:border hover:border-white/5"
@@ -90,10 +85,8 @@ export default function Sidebar() {
                 />
               )}
               <item.icon className={cn("w-5 h-5 flex-shrink-0 relative z-10", active && "text-omix-400")} />
-              {!collapsed && (
-                <span className="text-sm font-medium relative z-10">{item.label}</span>
-              )}
-              {active && !collapsed && (
+              <span className="text-sm font-medium relative z-10">{item.label}</span>
+              {active && (
                 <motion.div
                   layoutId="active-indicator"
                   className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-6 bg-omix-500 rounded-r-full"
@@ -104,17 +97,6 @@ export default function Sidebar() {
           );
         })}
       </nav>
-
-      {/* Collapse toggle */}
-      <div className={cn("px-3 pb-6", collapsed && "flex justify-center")}>
-        <button
-          onClick={() => setCollapsed(!collapsed)}
-          className="hidden lg:flex items-center justify-center w-full py-2 px-4 rounded-xl text-gray-500 hover:text-gray-300 hover:bg-white/5 transition-all border border-transparent hover:border-white/5 text-sm gap-2"
-        >
-          <ChevronLeft className={cn("w-4 h-4 transition-transform", collapsed && "rotate-180")} />
-          {!collapsed && <span>Collapse</span>}
-        </button>
-      </div>
     </div>
   );
 
@@ -155,13 +137,8 @@ export default function Sidebar() {
         {sidebarContent}
       </motion.aside>
 
-      {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          "hidden lg:flex flex-col fixed left-0 top-0 bottom-0 bg-surface/80 backdrop-blur-xl border-r border-border z-30 transition-all duration-300",
-          collapsed ? "w-20" : "w-64"
-        )}
-      >
+      {/* Desktop sidebar - non-collapsible */}
+      <aside className="hidden lg:flex flex-col fixed left-0 top-0 bottom-0 w-64 bg-surface/80 backdrop-blur-xl border-r border-border z-30">
         {sidebarContent}
       </aside>
     </>
