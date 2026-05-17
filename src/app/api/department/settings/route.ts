@@ -103,6 +103,13 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
+    if (!user.password) {
+      return NextResponse.json(
+        { error: "Accounts using social login do not have a password set. Please use your social provider to manage security." },
+        { status: 400 }
+      );
+    }
+
     const isMatch = await bcrypt.compare(data.currentPassword, user.password);
     if (!isMatch) {
       return NextResponse.json(
