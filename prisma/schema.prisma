@@ -70,10 +70,15 @@ model Department {
 model User {
   id            String   @id @default(cuid())
   email         String   @unique
+  emailVerified DateTime?
   name          String
-  password      String
+  password      String?
   role          String   @default("school_admin") // super_admin, school_admin, bursar, librarian, lab_technician, computer_lab, department_head, class_teacher, teacher
   image         String?
+  mfaEnabled    Boolean  @default(false)
+  mfaSecret     String?
+  failedLoginCount Int   @default(0)
+  lockedUntil   DateTime?
   schoolId      String?
   school        School?  @relation(fields: [schoolId], references: [id])
   departmentId  String?
@@ -81,6 +86,8 @@ model User {
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
+  accounts          Account[]
+  sessions          Session[]
   announcements     Announcement[]
   feePayments       FeePayment[]
   teacher           Teacher?              // one-to-one with Teacher profile
@@ -93,6 +100,43 @@ model User {
   boardMembership   BoardMember?           // one-to-one board membership
   createdMeetings   BoardMeeting[]         // meetings created by this user
   uploadedRecordings MeetingRecording[]
+}
+
+model Account {
+  id                 String  @id @default(cuid())
+  userId             String
+  type               String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  mfaRequired  Boolean  @default(false)
+  mfaVerified  Boolean  @default(false)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
 }
 
 model Teacher {

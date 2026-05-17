@@ -64,6 +64,14 @@ export default auth((req: NextRequest & { auth: any }) => {
     return NextResponse.redirect(loginUrl);
   }
 
+  // MFA Guard
+  const mfaRequired = (req.auth?.user as any)?.mfaRequired;
+  const mfaVerified = (req.auth?.user as any)?.mfaVerified;
+
+  if (mfaRequired && !mfaVerified && pathname !== "/auth/mfa") {
+    return NextResponse.redirect(new URL("/auth/mfa", req.url));
+  }
+
   // If logged in and on root, redirect to dashboard
   if (pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", req.url));

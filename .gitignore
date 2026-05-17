@@ -49,3 +49,4 @@ next-env.d.ts
 
 # Generated Prisma clients (regenerated during build)
 /src/generated/
+.firecrawl/
