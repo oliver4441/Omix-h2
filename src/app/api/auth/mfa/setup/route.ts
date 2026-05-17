@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { authenticator } from "otplib";
+import { generateSecret, generateURI } from "otplib";
 import qrcode from "qrcode";
 
 export async function GET(req: Request) {
@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     let secret = user.mfaSecret;
     if (!secret) {
-      secret = authenticator.generateSecret();
+      secret = generateSecret();
       await prisma.user.update({
         where: { id: userId },
         data: { mfaSecret: secret },
@@ -30,11 +30,11 @@ export async function GET(req: Request) {
     }
 
     const schoolName = (session.user as any).schoolName || "omixsystems";
-    const otpauth = authenticator.keyuri(
-      user.email,
-      `omix-sms (${schoolName})`,
-      secret
-    );
+    const otpauth = generateURI({
+      issuer: `omix-sms (${schoolName})`,
+      label: user.email,
+      secret,
+    });
 
     const qrCodeDataUrl = await qrcode.toDataURL(otpauth);
 

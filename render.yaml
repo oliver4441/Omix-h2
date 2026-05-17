@@ -27,5 +27,5 @@ services:
         value: "true"
       - key: NODE_OPTIONS
         value: "--max-old-space-size=512"
-      - key: OPENROUTER_API_KEY
+      - key: OPENCODE_ZEN_API_KEY
         sync: false

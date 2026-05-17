@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
-import { authenticator } from "otplib";
+import { verifySync } from "otplib";
 import { cookies } from "next/headers";
 
 export async function POST(req: Request) {
@@ -26,7 +26,11 @@ export async function POST(req: Request) {
     }
 
     // Verify TOTP code
-    const isValid = authenticator.check(code, user.mfaSecret);
+    const isValid = verifySync({
+      token: code,
+      secret: user.mfaSecret,
+    });
+    
     if (!isValid) {
       return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
     }
