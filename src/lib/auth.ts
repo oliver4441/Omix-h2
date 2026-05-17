@@ -17,7 +17,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     AzureAD({
       clientId: process.env.AUTH_AZURE_AD_CLIENT_ID,
       clientSecret: process.env.AUTH_AZURE_AD_CLIENT_SECRET,
-      tenantId: process.env.AUTH_AZURE_AD_TENANT_ID,
+      issuer: `https://login.microsoftonline.com/${process.env.AUTH_AZURE_AD_TENANT_ID}/v2.0`,
     }),
     Nodemailer({
       server: process.env.EMAIL_SERVER,
