@@ -10,19 +10,31 @@ import { prisma } from "@/lib/prisma";
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   providers: [
-    Google({
-      clientId: process.env.AUTH_GOOGLE_ID,
-      clientSecret: process.env.AUTH_GOOGLE_SECRET,
-    }),
-    AzureAD({
-      clientId: process.env.AUTH_AZURE_AD_CLIENT_ID,
-      clientSecret: process.env.AUTH_AZURE_AD_CLIENT_SECRET,
-      issuer: `https://login.microsoftonline.com/${process.env.AUTH_AZURE_AD_TENANT_ID}/v2.0`,
-    }),
-    Nodemailer({
-      server: process.env.EMAIL_SERVER,
-      from: process.env.EMAIL_FROM,
-    }),
+    ...(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET
+      ? [
+          Google({
+            clientId: process.env.AUTH_GOOGLE_ID,
+            clientSecret: process.env.AUTH_GOOGLE_SECRET,
+          }),
+        ]
+      : []),
+    ...(process.env.AUTH_AZURE_AD_CLIENT_ID && process.env.AUTH_AZURE_AD_CLIENT_SECRET
+      ? [
+          AzureAD({
+            clientId: process.env.AUTH_AZURE_AD_CLIENT_ID,
+            clientSecret: process.env.AUTH_AZURE_AD_CLIENT_SECRET,
+            issuer: `https://login.microsoftonline.com/${process.env.AUTH_AZURE_AD_TENANT_ID}/v2.0`,
+          }),
+        ]
+      : []),
+    ...(process.env.EMAIL_SERVER && process.env.EMAIL_FROM
+      ? [
+          Nodemailer({
+            server: process.env.EMAIL_SERVER,
+            from: process.env.EMAIL_FROM,
+          }),
+        ]
+      : []),
     Credentials({
       name: "credentials",
       credentials: {
