@@ -9,7 +9,7 @@ services:
     name: omix-sms
     env: node
     plan: free
-    buildCommand: npm install && npx prisma generate && npm run next-build
+    buildCommand: npm install && npx prisma generate && npx prisma generate --schema=prisma/local-schema.prisma && npm run next-build
     startCommand: npx prisma db push && npm start
     healthCheckPath: /login
     envVars:
@@ -22,10 +22,10 @@ services:
       - key: NEXTAUTH_SECRET
         generateValue: true
       - key: NEXTAUTH_URL
-        fromContext: RENDER_EXTERNAL_URL
+        value: https://${RENDER_EXTERNAL_HOSTNAME}
       - key: AUTH_TRUST_HOST
         value: "true"
       - key: NODE_OPTIONS
         value: "--max-old-space-size=512"
-      - key: OPENCODE_ZEN_API_KEY
+      - key: OPENROUTER_API_KEY
         sync: false

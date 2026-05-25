@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { requireRoles } from "@/lib/auth-helper";
 
 const updateBookSchema = z.object({
   title: z.string().min(1).optional(),
@@ -14,27 +14,55 @@ const updateBookSchema = z.object({
   category: z.string().optional(),
 });
 
-export async function PUT(
+const LIBRARY_ROLES = ["super_admin", "school_admin", "librarian"];
+
+export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireRoles(LIBRARY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
+    const { id } = await params;
+    const book = await prisma.libraryBook.findFirst({
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
+      include: {
+        checkouts: {
+          include: { student: { select: { id: true, firstName: true, lastName: true, admissionNo: true } } },
+          orderBy: { checkoutDate: "desc" },
+          take: 10,
+        },
+        _count: { select: { checkouts: true } },
+      },
+    });
+
+    if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+    return NextResponse.json({ book });
+  } catch (error) {
+    console.error("Error fetching book:", error);
+    return NextResponse.json({ error: "Failed to fetch book" }, { status: 500 });
+  }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  try {
+    const authResult = await requireRoles(LIBRARY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { id } = await params;
     const body = await request.json();
     const data = updateBookSchema.parse(body);
 
     const existing = await prisma.libraryBook.findFirst({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
     });
-    if (!existing) {
-      return NextResponse.json({ error: "Book not found" }, { status: 404 });
-    }
+    if (!existing) return NextResponse.json({ error: "Book not found" }, { status: 404 });
 
     const updateData: Record<string, unknown> = {};
     if (data.title !== undefined) updateData.title = data.title;
@@ -50,31 +78,18 @@ export async function PUT(
       updateData.quantity = data.quantity;
       updateData.available = existing.available + diff;
       if ((updateData.available as number) < 0) {
-        return NextResponse.json(
-          { error: "Not enough available copies to reduce quantity" },
-          { status: 400 }
-        );
+        return NextResponse.json({ error: "Quantity cannot be less than currently checked out copies" }, { status: 400 });
       }
     }
 
-    const book = await prisma.libraryBook.update({
-      where: { id },
-      data: updateData,
-    });
-
+    const book = await prisma.libraryBook.update({ where: { id }, data: updateData });
     return NextResponse.json({ book });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Validation error", details: error.errors }, { status: 400 });
     }
     console.error("Error updating book:", error);
-    return NextResponse.json(
-      { error: "Failed to update book" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update book" }, { status: 500 });
   }
 }
 
@@ -83,29 +98,24 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireRoles(LIBRARY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
-
     const existing = await prisma.libraryBook.findFirst({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
     });
-    if (!existing) {
-      return NextResponse.json({ error: "Book not found" }, { status: 404 });
+    if (!existing) return NextResponse.json({ error: "Book not found" }, { status: 404 });
+
+    if (existing.available < existing.quantity) {
+      return NextResponse.json({ error: "Cannot delete book with active checkouts" }, { status: 400 });
     }
 
     await prisma.libraryBook.delete({ where: { id } });
-
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error deleting book:", error);
-    return NextResponse.json(
-      { error: "Failed to delete book" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to delete book" }, { status: 500 });
   }
 }

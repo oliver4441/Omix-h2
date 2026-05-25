@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { audit } from "@/lib/local-audit";
+import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
 const feePaymentSchema = z.object({
   feeStructureId: z.string().min(1, "Fee structure ID is required"),
@@ -15,26 +16,20 @@ const feePaymentSchema = z.object({
   notes: z.string().optional().nullable(),
 });
 
-const ALLOWED_ROLES = ["super_admin", "school_admin", "bursar"];
+const FEE_MODIFY_ROLES = ["super_admin", "school_admin", "bursar"];
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!ALLOWED_ROLES.includes((session.user as any).role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(FEE_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
     const studentId = searchParams.get("studentId") || "";
     const term = searchParams.get("term") || "";
     const academicYear = searchParams.get("academicYear") || "";
     const feeStructureId = searchParams.get("feeStructureId") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
 
@@ -42,34 +37,20 @@ export async function GET(request: NextRequest) {
     if (term) where.term = term;
     if (academicYear) where.academicYear = academicYear;
     if (feeStructureId) where.feeStructureId = feeStructureId;
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
     const [payments, totalPayments] = await Promise.all([
       prisma.feePayment.findMany({
         where,
         include: {
           feeStructure: {
-            select: {
-              id: true,
-              name: true,
-              amount: true,
-              frequency: true,
-            },
+            select: { id: true, name: true, amount: true, frequency: true },
           },
           student: {
-            select: {
-              id: true,
-              admissionNo: true,
-              firstName: true,
-              lastName: true,
-            },
+            select: { id: true, admissionNo: true, firstName: true, lastName: true },
           },
           user: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-            },
+            select: { id: true, name: true, email: true },
           },
         },
         orderBy: { paymentDate: "desc" },
@@ -79,8 +60,8 @@ export async function GET(request: NextRequest) {
       prisma.feePayment.count({ where }),
     ]);
 
-    // Also return fee structures for reference
     const feeStructures = await prisma.feeStructure.findMany({
+      where: user.schoolId ? { schoolId: user.schoolId } : {},
       orderBy: { name: "asc" },
     });
 
@@ -102,14 +83,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    if (!ALLOWED_ROLES.includes((session.user as any).role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(FEE_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const body = await request.json();
     const data = feePaymentSchema.parse(body);
 
@@ -117,7 +94,7 @@ export async function POST(request: NextRequest) {
       data: {
         feeStructureId: data.feeStructureId,
         studentId: data.studentId,
-        userId: session.user.id,
+        userId: user.id,
         amount: data.amount,
         paymentDate: data.paymentDate ? new Date(data.paymentDate) : new Date(),
         method: data.method,
@@ -125,24 +102,25 @@ export async function POST(request: NextRequest) {
         term: data.term,
         academicYear: data.academicYear,
         notes: data.notes ?? null,
-        ...(schoolId ? { schoolId } : {}),
+        ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
       include: {
         feeStructure: {
           select: { id: true, name: true, amount: true },
         },
         student: {
-          select: {
-            id: true,
-            admissionNo: true,
-            firstName: true,
-            lastName: true,
-          },
+          select: { id: true, admissionNo: true, firstName: true, lastName: true },
         },
         user: {
           select: { id: true, name: true },
         },
       },
+    });
+
+    audit.created("fee_payment", payment.id, user.id, user.schoolId ?? undefined, {
+      studentId: data.studentId,
+      amount: data.amount,
+      method: data.method,
     });
 
     return NextResponse.json({ payment }, { status: 201 });

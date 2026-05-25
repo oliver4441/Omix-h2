@@ -1,153 +1,89 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { requireRoles } from "@/lib/auth-helper";
 
 const updateMeetingSchema = z.object({
   title: z.string().min(1).optional(),
-  date: z.string().optional(),
-  startTime: z.string().optional(),
-  endTime: z.string().optional(),
-  venue: z.string().optional(),
-  status: z.enum(["scheduled", "ongoing", "adjourned", "completed"]).optional(),
+  date: z.string().min(1).optional(),
+  startTime: z.string().min(1).optional(),
+  endTime: z.string().optional().nullable(),
+  venue: z.string().optional().nullable(),
+  status: z.enum(["scheduled", "in_progress", "completed", "cancelled"]).optional(),
 });
+
+const BOARD_ROLES = ["super_admin", "school_admin", "board_member"];
+const BOARD_MODIFY_ROLES = ["super_admin", "school_admin"];
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireRoles(BOARD_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
-
     const meeting = await prisma.boardMeeting.findFirst({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
       include: {
-        agendaItems: {
-          orderBy: { order: "asc" },
-        },
-        minutes: {
-          include: {
-            agendaItem: {
-              select: { id: true, title: true },
-            },
-            recordedBy: {
-              include: {
-                user: {
-                  select: { id: true, name: true },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-        },
-        recordings: {
-          include: {
-            uploadedBy: {
-              select: { id: true, name: true },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-        },
-        suggestions: {
-          include: {
-            boardMember: {
-              include: {
-                user: {
-                  select: { id: true, name: true },
-                },
-              },
-            },
-          },
-          orderBy: { createdAt: "desc" },
-        },
-        createdBy: {
-          select: { id: true, name: true },
-        },
+        agendaItems: { orderBy: { order: "asc" } },
+        minutes: true,
+        recordings: true,
+        createdBy: { select: { id: true, name: true } },
       },
     });
 
-    if (!meeting) {
-      return NextResponse.json(
-        { error: "Meeting not found" },
-        { status: 404 }
-      );
-    }
-
+    if (!meeting) return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
     return NextResponse.json({ meeting });
   } catch (error) {
     console.error("Error fetching meeting:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch meeting" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch meeting" }, { status: 500 });
   }
 }
 
-export async function PUT(
+export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireRoles(BOARD_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
     const body = await request.json();
     const data = updateMeetingSchema.parse(body);
 
     const existing = await prisma.boardMeeting.findFirst({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
     });
-    if (!existing) {
-      return NextResponse.json(
-        { error: "Meeting not found" },
-        { status: 404 }
-      );
-    }
-
-    const updateData: Record<string, unknown> = {};
-    if (data.title !== undefined) updateData.title = data.title;
-    if (data.date !== undefined) updateData.date = new Date(data.date);
-    if (data.startTime !== undefined) updateData.startTime = data.startTime;
-    if (data.endTime !== undefined) updateData.endTime = data.endTime;
-    if (data.venue !== undefined) updateData.venue = data.venue;
-    if (data.status !== undefined) updateData.status = data.status;
+    if (!existing) return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
 
     const meeting = await prisma.boardMeeting.update({
       where: { id },
-      data: updateData,
+      data: {
+        ...(data.title !== undefined && { title: data.title }),
+        ...(data.date !== undefined && { date: new Date(data.date) }),
+        ...(data.startTime !== undefined && { startTime: data.startTime }),
+        ...(data.endTime !== undefined && { endTime: data.endTime }),
+        ...(data.venue !== undefined && { venue: data.venue }),
+        ...(data.status !== undefined && { status: data.status }),
+      },
       include: {
-        agendaItems: {
-          orderBy: { order: "asc" },
-        },
-        createdBy: {
-          select: { id: true, name: true },
-        },
+        agendaItems: { orderBy: { order: "asc" } },
+        createdBy: { select: { id: true, name: true } },
       },
     });
 
     return NextResponse.json({ meeting });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Validation error", details: error.errors }, { status: 400 });
     }
     console.error("Error updating meeting:", error);
-    return NextResponse.json(
-      { error: "Failed to update meeting" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update meeting" }, { status: 500 });
   }
 }
 
@@ -156,32 +92,20 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireRoles(BOARD_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const { id } = await params;
-
     const existing = await prisma.boardMeeting.findFirst({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}) },
     });
-    if (!existing) {
-      return NextResponse.json(
-        { error: "Meeting not found" },
-        { status: 404 }
-      );
-    }
+    if (!existing) return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
 
     await prisma.boardMeeting.delete({ where: { id } });
-
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ message: "Meeting deleted successfully" });
   } catch (error) {
     console.error("Error deleting meeting:", error);
-    return NextResponse.json(
-      { error: "Failed to delete meeting" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to delete meeting" }, { status: 500 });
   }
 }

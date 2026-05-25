@@ -1,27 +1,22 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { requireRoles } from "@/lib/auth-helper";
+
+const LAB_STATS_ROLES = ["super_admin", "school_admin", "lab_technician"];
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireRoles(LAB_STATS_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const where: Record<string, unknown> = {};
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
     const [totalAgg, lowStockItems] = await Promise.all([
       prisma.scienceApparatus.aggregate({
         where,
-        _sum: {
-          totalQuantity: true,
-          available: true,
-          broken: true,
-          lost: true,
-        },
+        _sum: { totalQuantity: true, available: true, broken: true, lost: true },
         _count: { id: true },
       }),
       prisma.scienceApparatus.findMany({
@@ -40,9 +35,6 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error("Error fetching lab stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch lab stats" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch lab stats" }, { status: 500 });
   }
 }

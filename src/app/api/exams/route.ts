@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
 import { z } from "zod";
+import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
 const examSchema = z.object({
   name: z.string().min(1, "Exam name is required"),
@@ -12,25 +12,24 @@ const examSchema = z.object({
   description: z.string().optional().nullable(),
 });
 
+const EXAM_MODIFY_ROLES = ["super_admin", "school_admin", "department_head"];
+
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(EXAM_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
     const academicYear = searchParams.get("academicYear") || "";
     const term = searchParams.get("term") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
 
     if (academicYear) where.academicYear = academicYear;
     if (term) where.term = term;
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
     const [exams, total] = await Promise.all([
       prisma.exam.findMany({
@@ -64,11 +63,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(EXAM_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const body = await request.json();
     const data = examSchema.parse(body);
 
@@ -80,7 +78,7 @@ export async function POST(request: NextRequest) {
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
         description: data.description,
-        ...(schoolId ? { schoolId } : {}),
+        ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
     });
 

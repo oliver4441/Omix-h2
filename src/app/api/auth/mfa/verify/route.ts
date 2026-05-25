@@ -1,47 +1,53 @@
-import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
 import { verifySync } from "otplib";
 import { cookies } from "next/headers";
+import { checkRateLimit, getClientIp } from "@/lib/local-rate-limit";
+import { requireAuth } from "@/lib/auth-helper";
 
 export async function POST(req: Request) {
   try {
-    const session = await auth();
-    if (!session?.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    // Rate limit: 5 attempts per 5 minutes per IP
+    const ip = getClientIp(req);
+    const rateLimit = await checkRateLimit(`mfa-verify:${ip}`, 5, 300);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many attempts. Please try again later.", retryAfter: Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000) },
+        { status: 429, headers: { "Retry-After": String(Math.ceil((rateLimit.resetAt.getTime() - Date.now()) / 1000)) } }
+      );
     }
+
+    const authResult = await requireAuth();
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
     const { code } = await req.json();
     if (!code || code.length !== 6) {
       return NextResponse.json({ error: "Invalid code" }, { status: 400 });
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: (session.user as any).id },
+    const dbUser = await prisma.user.findUnique({
+      where: { id: user.id },
       select: { mfaSecret: true },
     });
 
-    if (!user || !user.mfaSecret) {
+    if (!dbUser || !dbUser.mfaSecret) {
       return NextResponse.json({ error: "MFA not set up for this account" }, { status: 400 });
     }
 
-    // Verify TOTP code
-    const isValid = verifySync({
-      token: code,
-      secret: user.mfaSecret,
-    });
-    
+    const isValid = verifySync({ token: code, secret: dbUser.mfaSecret });
+
     if (!isValid) {
       return NextResponse.json({ error: "Invalid verification code" }, { status: 400 });
     }
 
     // Update session in database to mark as MFA verified
     const cookieStore = await cookies();
-    // NextAuth v5 uses these cookie names by default
-    const sessionToken = cookieStore.get("authjs.session-token")?.value || 
-                         cookieStore.get("__Secure-authjs.session-token")?.value ||
-                         cookieStore.get("next-auth.session-token")?.value ||
-                         cookieStore.get("__Secure-next-auth.session-token")?.value;
+    const sessionToken =
+      cookieStore.get("authjs.session-token")?.value ||
+      cookieStore.get("__Secure-authjs.session-token")?.value ||
+      cookieStore.get("next-auth.session-token")?.value ||
+      cookieStore.get("__Secure-next-auth.session-token")?.value;
 
     if (sessionToken) {
       await prisma.session.update({

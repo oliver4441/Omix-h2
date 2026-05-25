@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { audit } from "@/lib/local-audit";
 import { z } from "zod";
+import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
 const gradeRecordSchema = z.object({
   studentId: z.string().min(1, "Student ID is required"),
@@ -15,29 +16,20 @@ const gradeRecordSchema = z.object({
 
 const batchGradeSchema = z.array(gradeRecordSchema);
 
-export async function authGuard(request: NextRequest) {
-  const session = await auth();
-  if (!session?.user?.id) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
-  return (session.user as any).schoolId;
-}
+const GRADE_MODIFY_ROLES = ["super_admin", "school_admin", "teacher", "department_head"];
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(GRADE_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
     const examId = searchParams.get("examId") || "";
     const classId = searchParams.get("classId") || "";
     const studentId = searchParams.get("studentId") || "";
     const subjectId = searchParams.get("subjectId") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "200");
-    const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
 
@@ -45,34 +37,20 @@ export async function GET(request: NextRequest) {
     if (classId) where.classId = classId;
     if (studentId) where.studentId = studentId;
     if (subjectId) where.subjectId = subjectId;
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
     const [grades, total] = await Promise.all([
       prisma.grade.findMany({
         where,
         include: {
           student: {
-            select: {
-              id: true,
-              admissionNo: true,
-              firstName: true,
-              lastName: true,
-            },
+            select: { id: true, admissionNo: true, firstName: true, lastName: true },
           },
           subject: {
-            select: {
-              id: true,
-              name: true,
-              code: true,
-            },
+            select: { id: true, name: true, code: true },
           },
           exam: {
-            select: {
-              id: true,
-              name: true,
-              term: true,
-              academicYear: true,
-            },
+            select: { id: true, name: true, term: true, academicYear: true },
           },
         },
         orderBy: [
@@ -102,6 +80,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    const authResult = await requireRoles(GRADE_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const body = await request.json();
     const records = batchGradeSchema.parse(body);
 
@@ -129,27 +111,23 @@ export async function POST(request: NextRequest) {
             score: record.score ?? null,
             grade: record.grade ?? null,
             remarks: record.remarks ?? null,
+            ...(user.schoolId ? { schoolId: user.schoolId } : {}),
           },
           include: {
             student: {
-              select: {
-                id: true,
-                firstName: true,
-                lastName: true,
-                admissionNo: true,
-              },
+              select: { id: true, firstName: true, lastName: true, admissionNo: true },
             },
             subject: {
-              select: {
-                id: true,
-                name: true,
-                code: true,
-              },
+              select: { id: true, name: true, code: true },
             },
           },
         });
       })
     );
+
+    audit.updated("grades", "batch", user.id, user.schoolId ?? undefined, {
+      count: results.length,
+    });
 
     return NextResponse.json({ grades: results, count: results.length }, { status: 201 });
   } catch (error) {

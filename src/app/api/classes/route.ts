@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { requireRoles } from "@/lib/auth-helper";
 
 const classSchema = z.object({
   name: z.string().min(1, "Class name is required"),
@@ -11,17 +11,14 @@ const classSchema = z.object({
   teacherId: z.string().optional().nullable(),
 });
 
+const CLASS_MODIFY_ROLES = ["super_admin", "school_admin"];
+
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const authResult = await requireRoles(CLASS_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const academicYear = searchParams.get("academicYear") || "";
@@ -29,7 +26,7 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, unknown> = { deletedAt: null };
 
     if (search) {
       where.OR = [
@@ -39,7 +36,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (academicYear) where.academicYear = academicYear;
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
     const [classes, total] = await Promise.all([
       prisma.class.findMany({
@@ -81,15 +78,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const authResult = await requireRoles(CLASS_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const body = await request.json();
     const data = classSchema.parse(body);
 
@@ -100,7 +92,7 @@ export async function POST(request: NextRequest) {
         academicYear: data.academicYear,
         capacity: data.capacity,
         ...(data.teacherId ? { teacherId: data.teacherId } : {}),
-        ...(schoolId ? { schoolId } : {}),
+        ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
       include: {
         teacher: {

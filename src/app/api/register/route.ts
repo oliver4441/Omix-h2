@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { checkRateLimit, getClientIp } from "@/lib/local-rate-limit";
 
 const registerSchema = z.object({
   schoolName: z.string().min(1, "School name is required"),
@@ -10,7 +11,10 @@ const registerSchema = z.object({
   schoolAddress: z.string().optional().or(z.literal("")),
   adminName: z.string().min(1, "Admin name is required"),
   adminEmail: z.string().email("Invalid admin email"),
-  adminPassword: z.string().min(6, "Password must be at least 6 characters"),
+  adminPassword: z.string().min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number"),
 });
 
 function generateSlug(name: string): string {
@@ -24,6 +28,16 @@ function generateSlug(name: string): string {
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limit: 3 registrations per hour per IP
+    const ip = getClientIp(request);
+    const rateLimit = await checkRateLimit(`register:${ip}`, 3, 3600);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many registration attempts. Please try again later." },
+        { status: 429 }
+      );
+    }
+
     const body = await request.json();
     const data = registerSchema.parse(body);
 

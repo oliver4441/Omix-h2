@@ -115,7 +115,7 @@ async function main() {
           classId: classes[i%3].id,
           score,
           grade: score>=80?'A':score>=70?'B':score>=60?'C':score>=50?'D':'E',
-          school: { connect: { id: SID } },
+          schoolId: SID,
         },
       });
     }

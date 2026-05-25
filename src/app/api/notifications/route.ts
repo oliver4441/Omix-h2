@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth-helper";
 
 const createNotificationSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -12,47 +12,38 @@ const createNotificationSchema = z.object({
   link: z.string().optional(),
 });
 
+const NOTIFICATION_CREATE_ROLES = ["super_admin", "school_admin", "department_head", "teacher"];
+
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireAuth();
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
-    const userId = session.user.id;
-    const userRole = (session.user as any).role;
-    const userDepartmentId = (session.user as any).departmentId;
-
-    // Build notification query based on user role/department
     const where: Record<string, unknown> = {};
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
-    // Notifications targeting all roles, the user's specific role, or their department
     const orFilters: Record<string, unknown>[] = [
       { targetRole: null },
-      { targetRole: userRole },
+      { targetRole: user.role },
     ];
-    if (userDepartmentId) {
-      orFilters.push({ targetDepartmentId: userDepartmentId });
+    if (user.departmentId) {
+      orFilters.push({ targetDepartmentId: user.departmentId });
     }
     where.OR = orFilters;
 
     const notifications = await prisma.notification.findMany({
       where,
       include: {
-        sender: {
-          select: { id: true, name: true },
-        },
+        sender: { select: { id: true, name: true } },
         reads: {
-          where: { userId },
+          where: { userId: user.id },
           select: { readAt: true },
         },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Add read status and count unread
     const notificationsWithStatus = notifications.map((n) => ({
       ...n,
       isRead: n.reads.length > 0,
@@ -75,13 +66,14 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const authResult = await requireAuth();
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
+    if (!NOTIFICATION_CREATE_ROLES.includes(user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const schoolId = (session.user as any).schoolId;
-    const userId = session.user.id;
     const body = await request.json();
     const data = createNotificationSchema.parse(body);
 
@@ -90,16 +82,14 @@ export async function POST(request: NextRequest) {
         title: data.title,
         content: data.content,
         priority: data.priority || "normal",
-        senderId: userId,
+        senderId: user.id,
         targetRole: data.targetRole,
         targetDepartmentId: data.targetDepartmentId,
         link: data.link,
-        ...(schoolId ? { schoolId } : {}),
+        ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
       include: {
-        sender: {
-          select: { id: true, name: true },
-        },
+        sender: { select: { id: true, name: true } },
       },
     });
 

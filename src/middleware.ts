@@ -7,18 +7,44 @@ const publicPaths = ["/login", "/register", "/api/auth"];
 function getSubdomain(host: string | null): string | null {
   if (!host) return null;
   const parts = host.split(".");
+
+  // Render deployment: school-name.onrender.com (3 parts, has "render")
   if (parts.length >= 3 && (host.includes("onrender") || host.includes("render"))) {
     if (parts.length >= 4) return parts[0];
     return null;
   }
-  if (host.includes("localhost") && parts.length >= 3) {
-    return parts[0];
+
+  // Localhost with subdomain: school.localhost:3000
+  if (host.includes("localhost")) {
+    if (parts.length >= 3) return parts[0];
+    return null;
   }
+
+  // Production custom domain: school.omixsystems.com (3+ parts)
+  // Skip www and common subdomains that aren't school slugs
+  const reservedSubdomains = ["www", "admin", "api", "staging", "dev", "test", "mail", "ftp"];
+  if (parts.length >= 3) {
+    const candidate = parts[0];
+    if (!reservedSubdomains.includes(candidate)) {
+      return candidate;
+    }
+  }
+
   return null;
 }
 
 export default auth((req: NextRequest & { auth: any }) => {
   const { pathname } = req.nextUrl;
+
+  // Force HTTPS in production
+  if (
+    process.env.NODE_ENV === "production" &&
+    req.headers.get("x-forwarded-proto") === "http"
+  ) {
+    const httpsUrl = new URL(req.url);
+    httpsUrl.protocol = "https:";
+    return NextResponse.redirect(httpsUrl, 301);
+  }
 
   // Allow static assets
   if (
@@ -76,6 +102,13 @@ export default auth((req: NextRequest & { auth: any }) => {
   if (pathname === "/") {
     return NextResponse.redirect(new URL("/dashboard", req.url));
   }
+
+  // Add security headers
+  response.headers.set("X-Content-Type-Options", "nosniff");
+  response.headers.set("X-Frame-Options", "DENY");
+  response.headers.set("X-XSS-Protection", "1; mode=block");
+  response.headers.set("Referrer-Policy", "strict-origin-when-cross-origin");
+  response.headers.set("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
 
   return response;
 });

@@ -1,15 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { requireRoles, requireAuth } from "@/lib/auth-helper";
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
+    const authResult = await requireAuth();
+  if (authResult instanceof Response) return authResult;
+  const { user } = authResult;
+    if (!user.id) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const schoolId = (session.user as any).schoolId;
+    const schoolId = user.schoolId;
     const where: Record<string, unknown> = {};
     if (schoolId) where.schoolId = schoolId;
 

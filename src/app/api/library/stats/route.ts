@@ -1,51 +1,39 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { requireRoles } from "@/lib/auth-helper";
+
+const LIBRARY_STATS_ROLES = ["super_admin", "school_admin", "librarian"];
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const authResult = await requireRoles(LIBRARY_STATS_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const where: Record<string, unknown> = {};
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
-    const [totalBooks, availableBooks, checkedOut, overdueCount, activeCheckouts] =
-      await Promise.all([
-        prisma.libraryBook.aggregate({
-          where,
-          _sum: { quantity: true },
-        }),
-        prisma.libraryBook.aggregate({
-          where,
-          _sum: { available: true },
-        }),
-        prisma.bookCheckout.count({
-          where: { ...where, status: { not: "returned" } },
-        }),
-        prisma.bookCheckout.count({
-          where: { ...where, status: "overdue" },
-        }),
-        prisma.bookCheckout.count({
-          where: { ...where, status: "active" },
-        }),
-      ]);
+    const [bookAgg, activeCheckouts, overdueCount] = await Promise.all([
+      prisma.libraryBook.aggregate({
+        where,
+        _sum: { quantity: true, available: true },
+        _count: { id: true },
+      }),
+      prisma.bookCheckout.count({ where: { ...where, status: "active" } }),
+      prisma.bookCheckout.count({
+        where: { ...where, status: "active", dueDate: { lt: new Date() } },
+      }),
+    ]);
 
     return NextResponse.json({
-      totalBooks: totalBooks._sum.quantity || 0,
-      availableBooks: availableBooks._sum.available || 0,
-      checkedOut,
-      overdueCount,
+      totalBooks: bookAgg._sum.quantity || 0,
+      availableBooks: bookAgg._sum.available || 0,
       activeCheckouts,
+      overdueCount,
+      uniqueTitles: bookAgg._count.id,
     });
   } catch (error) {
     console.error("Error fetching library stats:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch library stats" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch library stats" }, { status: 500 });
   }
 }

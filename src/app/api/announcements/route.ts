@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
 const announcementSchema = z.object({
   title: z.string().min(1, "Title is required"),
@@ -11,55 +11,42 @@ const announcementSchema = z.object({
   classId: z.string().optional().nullable(),
 });
 
+const ANNOUNCEMENT_ROLES = ["super_admin", "school_admin", "teacher", "department_head"];
+
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(ANNOUNCEMENT_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
     const target = searchParams.get("target") || "";
     const priority = searchParams.get("priority") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const skip = (page - 1) * limit;
 
     const where: Record<string, unknown> = {};
 
     if (target) where.target = target;
     if (priority) where.priority = priority;
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
     const [announcements, total] = await Promise.all([
       prisma.announcement.findMany({
         where,
         include: {
           author: {
-            select: {
-              id: true,
-              name: true,
-              email: true,
-              role: true,
-            },
+            select: { id: true, name: true, email: true, role: true },
           },
         },
-        orderBy: [
-          { priority: "desc" },
-          { createdAt: "desc" },
-        ],
+        orderBy: { createdAt: "desc" },
         skip,
         take: limit,
       }),
       prisma.announcement.count({ where }),
     ]);
 
-    // Sort by priority weight manually since SQLite doesn't support custom ordering
     const priorityWeight: Record<string, number> = {
-      urgent: 0,
-      high: 1,
-      normal: 2,
-      low: 3,
+      urgent: 0, high: 1, normal: 2, low: 3,
     };
 
     const sorted = announcements.sort(
@@ -85,15 +72,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const authResult = await requireRoles(ANNOUNCEMENT_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any)?.schoolId;
     const body = await request.json();
     const data = announcementSchema.parse(body);
 
@@ -101,20 +83,15 @@ export async function POST(request: NextRequest) {
       data: {
         title: data.title,
         content: data.content,
-        authorId: session.user.id,
+        authorId: user.id,
         priority: data.priority,
         target: data.target,
         classId: data.classId ?? null,
-        schoolId: schoolId ?? null,
+        schoolId: user.schoolId ?? null,
       },
       include: {
         author: {
-          select: {
-            id: true,
-            name: true,
-            email: true,
-            role: true,
-          },
+          select: { id: true, name: true, email: true, role: true },
         },
       },
     });

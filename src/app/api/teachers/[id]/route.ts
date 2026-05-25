@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { auth } from "@/lib/auth";
+import { requireRoles } from "@/lib/auth-helper";
 import { z } from "zod";
 
 const teacherUpdateSchema = z.object({
@@ -17,47 +17,36 @@ const teacherUpdateSchema = z.object({
   status: z.enum(["active", "inactive"]).optional(),
 });
 
+const TEACHER_MODIFY_ROLES = ["super_admin", "school_admin"];
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(TEACHER_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { id } = await params;
 
-    const teacher = await prisma.teacher.findUnique({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+    const teacher = await prisma.teacher.findFirst({
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}), deletedAt: null },
       include: {
-        classes: {
-          include: {
-            _count: { select: { enrollments: true } },
-          },
-        },
+        classes: { include: { _count: { select: { enrollments: true } } } },
         subjects: true,
-        _count: {
-          select: { classes: true, subjects: true },
-        },
+        _count: { select: { classes: true, subjects: true } },
       },
     });
 
     if (!teacher) {
-      return NextResponse.json(
-        { error: "Teacher not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
     }
 
     return NextResponse.json({ teacher });
   } catch (error) {
     console.error("Error fetching teacher:", error);
-    return NextResponse.json(
-      { error: "Failed to fetch teacher" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to fetch teacher" }, { status: 500 });
   }
 }
 
@@ -66,27 +55,23 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(TEACHER_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { id } = await params;
     const body = await request.json();
     const data = teacherUpdateSchema.parse(body);
 
-    const existing = await prisma.teacher.findUnique({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+    const existing = await prisma.teacher.findFirst({
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}), deletedAt: null },
     });
     if (!existing) {
-      return NextResponse.json(
-        { error: "Teacher not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
     }
 
     const teacher = await prisma.teacher.update({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+      where: { id },
       data: {
         ...(data.employeeNo !== undefined && { employeeNo: data.employeeNo }),
         ...(data.firstName !== undefined && { firstName: data.firstName }),
@@ -105,16 +90,10 @@ export async function PATCH(
     return NextResponse.json({ teacher });
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: "Validation error", details: error.errors },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Validation error", details: error.errors }, { status: 400 });
     }
     console.error("Error updating teacher:", error);
-    return NextResponse.json(
-      { error: "Failed to update teacher" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to update teacher" }, { status: 500 });
   }
 }
 
@@ -123,31 +102,28 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-    const schoolId = (session.user as any).schoolId;
+    const authResult = await requireRoles(TEACHER_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
+
     const { id } = await params;
 
-    const existing = await prisma.teacher.findUnique({
-      where: { id, ...(schoolId ? { schoolId } : {}) },
+    const existing = await prisma.teacher.findFirst({
+      where: { id, ...(user.schoolId ? { schoolId: user.schoolId } : {}), deletedAt: null },
     });
     if (!existing) {
-      return NextResponse.json(
-        { error: "Teacher not found" },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "Teacher not found" }, { status: 404 });
     }
 
-    await prisma.teacher.delete({ where: { id } });
+    // Soft delete
+    await prisma.teacher.update({
+      where: { id },
+      data: { deletedAt: new Date(), status: "inactive" },
+    });
 
     return NextResponse.json({ message: "Teacher deleted successfully" });
   } catch (error) {
     console.error("Error deleting teacher:", error);
-    return NextResponse.json(
-      { error: "Failed to delete teacher" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to delete teacher" }, { status: 500 });
   }
 }

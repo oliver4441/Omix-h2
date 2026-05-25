@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { auth } from "@/lib/auth";
+import { audit } from "@/lib/local-audit";
+import { requireRoles } from "@/lib/auth-helper";
 
 const studentSchema = z.object({
   admissionNo: z.string().min(1, "Admission number is required"),
@@ -20,17 +21,14 @@ const studentSchema = z.object({
   academicYear: z.string().optional().nullable(),
 });
 
+const STUDENT_MODIFY_ROLES = ["super_admin", "school_admin"];
+
 export async function GET(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const authResult = await requireRoles(STUDENT_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const classId = searchParams.get("classId") || "";
@@ -39,9 +37,9 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "50");
     const skip = (page - 1) * limit;
 
-    const where: any = {};
+    const where: any = { deletedAt: null };
 
-    if (schoolId) where.schoolId = schoolId;
+    if (user.schoolId) where.schoolId = user.schoolId;
 
     if (search) {
       where.OR = [
@@ -100,15 +98,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth();
-    if (!session?.user?.id) {
-      return NextResponse.json(
-        { error: "Unauthorized" },
-        { status: 401 }
-      );
-    }
+    const authResult = await requireRoles(STUDENT_MODIFY_ROLES);
+    if (authResult instanceof Response) return authResult;
+    const { user } = authResult;
 
-    const schoolId = (session.user as any).schoolId;
     const body = await request.json();
     const data = studentSchema.parse(body);
 
@@ -126,11 +119,10 @@ export async function POST(request: NextRequest) {
         guardianPhone: data.guardianPhone,
         guardianEmail: data.guardianEmail || null,
         status: data.status,
-        ...(schoolId ? { schoolId } : {}),
+        ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
     });
 
-    // If classId provided, create enrollment
     if (data.classId && data.academicYear) {
       await prisma.enrollment.create({
         data: {
@@ -138,10 +130,15 @@ export async function POST(request: NextRequest) {
           classId: data.classId,
           academicYear: data.academicYear,
           status: "active",
-          ...(schoolId ? { schoolId } : {}),
+          ...(user.schoolId ? { schoolId: user.schoolId } : {}),
         },
       });
     }
+
+    audit.created("student", student.id, user.id, user.schoolId ?? undefined, {
+      admissionNo: data.admissionNo,
+      name: `${data.firstName} ${data.lastName}`,
+    });
 
     return NextResponse.json({ student }, { status: 201 });
   } catch (error) {
