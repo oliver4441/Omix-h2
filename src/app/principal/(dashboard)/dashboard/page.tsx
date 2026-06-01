@@ -388,8 +388,8 @@ export default function PrincipalDashboardPage() {
           className="glass rounded-2xl p-6 border border-indigo-500/10 bg-gradient-to-r from-indigo-500/5 to-transparent"
         >
           <div className="flex items-start gap-4">
-            <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-              <Sparkles className="w-5 h-5 text-indigo-400" />
+            <div className="w-10 h-10 rounded-xl bg-omix-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+              <Sparkles className="w-5 h-5 text-omix-400" />
             </div>
             <div className="flex-1">
               <h3 className="text-sm font-semibold text-white mb-2">AI Summary</h3>
@@ -420,7 +420,7 @@ export default function PrincipalDashboardPage() {
                 <div className={cn("w-10 h-10 rounded-xl bg-gradient-to-br flex items-center justify-center mb-3", dept.color)}>
                   <DeptIcon className="w-5 h-5 text-white" />
                 </div>
-                <p className="text-sm font-semibold text-white group-hover:text-indigo-400 transition-colors">
+                <p className="text-sm font-semibold text-white group-hover:text-omix-400 transition-colors">
                   {dept.label}
                 </p>
                 <p className="text-xs text-gray-500 mt-1">{dept.desc}</p>
@@ -446,7 +446,7 @@ export default function PrincipalDashboardPage() {
 
         {overview.recentLogs.length === 0 ? (
           <div className="text-center py-8">
-            <Activity className="w-10 h-10 text-gray-600 mx-auto mb-2" />
+            <Activity className="w-10 h-10 text-gray-400 mx-auto mb-2" />
             <p className="text-sm text-gray-500">No recent activity logged</p>
           </div>
         ) : (
@@ -470,7 +470,7 @@ export default function PrincipalDashboardPage() {
                       <span className="text-xs font-medium text-gray-400 uppercase tracking-wider">
                         {getDepartmentLabel(log.department)}
                       </span>
-                      <span className="text-xs text-gray-600">&middot;</span>
+                      <span className="text-xs text-gray-400">&middot;</span>
                       <span className="text-xs text-gray-500">
                         {formatDate(log.createdAt)}
                       </span>

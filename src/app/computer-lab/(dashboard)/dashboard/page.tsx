@@ -338,7 +338,7 @@ export default function ComputerLabDashboardPage() {
         </h2>
         {sessions.length === 0 ? (
           <div className="glass rounded-2xl p-8 text-center">
-            <Clock className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <Clock className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-500 text-sm">
               No sessions scheduled for today
             </p>
@@ -418,7 +418,7 @@ export default function ComputerLabDashboardPage() {
           animate={{ opacity: 1 }}
           className="glass rounded-2xl p-12 text-center"
         >
-          <Monitor className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <Monitor className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-300 mb-2">
             Computer Lab Not Set Up
           </h3>

@@ -650,7 +650,7 @@ export default function BursarPaymentsPage() {
             animate={{ opacity: 1 }}
             className="glass rounded-2xl p-12 text-center"
           >
-            <Banknote className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+            <Banknote className="w-16 h-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-medium text-gray-300 mb-2">
               No financial data yet
             </h3>

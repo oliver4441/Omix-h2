@@ -143,7 +143,7 @@ export default function BoardDashboardPage() {
       return "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20";
     if (status === "declined")
       return "bg-red-500/10 text-red-400 border border-red-500/20";
-    return "bg-gray-500/10 text-gray-400 border border-gray-500/20";
+    return "bg-surface-20/10 text-gray-400 border border-gray-500/20";
   };
 
   if (loading) {
@@ -295,7 +295,7 @@ export default function BoardDashboardPage() {
           <div className="glass rounded-2xl p-6 border-border">
             {upcomingMeetings.length === 0 ? (
               <div className="text-center py-8">
-                <Calendar className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">
                   No upcoming meetings scheduled
                 </p>
@@ -371,7 +371,7 @@ export default function BoardDashboardPage() {
           <div className="glass rounded-2xl p-6 border-border">
             {recentSuggestions.length === 0 ? (
               <div className="text-center py-8">
-                <Lightbulb className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+                <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-3" />
                 <p className="text-gray-500 text-sm">
                   No suggestions submitted yet
                 </p>
@@ -427,7 +427,7 @@ export default function BoardDashboardPage() {
           animate={{ opacity: 1 }}
           className="glass rounded-2xl p-12 text-center"
         >
-          <Building2 className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <Building2 className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-300 mb-2">
             Welcome to the Board Portal
           </h3>

@@ -425,7 +425,7 @@ export default function DepartmentDashboardPage() {
         </div>
         {classPerformanceData.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center border-border">
-            <School className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <School className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-500 text-sm">
               No performance records yet. Click &quot;Record Performance&quot; to add data.
             </p>
@@ -451,7 +451,7 @@ export default function DepartmentDashboardPage() {
         </h2>
         {recentEntries.length === 0 ? (
           <div className="glass rounded-2xl p-12 text-center border-border">
-            <TrendingUp className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <TrendingUp className="w-12 h-12 text-gray-400 mx-auto mb-3" />
             <p className="text-gray-500 text-sm">
               No recent entries
             </p>

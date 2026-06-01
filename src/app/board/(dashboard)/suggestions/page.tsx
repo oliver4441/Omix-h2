@@ -329,7 +329,7 @@ export default function BoardSuggestionsPage() {
           animate={{ opacity: 1 }}
           className="glass rounded-2xl p-12 text-center"
         >
-          <Lightbulb className="w-16 h-16 text-gray-600 mx-auto mb-4" />
+          <Lightbulb className="w-16 h-16 text-gray-400 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-300 mb-2">
             No Suggestions Yet
           </h3>
