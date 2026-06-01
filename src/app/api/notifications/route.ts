@@ -1,59 +1,62 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
-import { requireAuth } from "@/lib/auth-helper";
+import { audit } from "@/lib/local-audit";
+import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
-const createNotificationSchema = z.object({
+const notificationSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
-  priority: z.enum(["low", "normal", "high", "urgent"]).optional(),
-  targetRole: z.string().optional(),
-  targetDepartmentId: z.string().optional(),
-  link: z.string().optional(),
+  priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
+  targetRole: z.string().optional().nullable(),
+  targetDepartmentId: z.string().optional().nullable(),
+  link: z.string().optional().nullable(),
 });
 
-const NOTIFICATION_CREATE_ROLES = ["super_admin", "school_admin", "department_head", "teacher"];
+const NOTIFICATION_ROLES = ["super_admin", "school_admin", "department_head"];
 
 export async function GET(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireRoles(NOTIFICATION_ROLES);
     if (authResult instanceof Response) return authResult;
     const { user } = authResult;
 
-    const where: Record<string, unknown> = {};
+    const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
+    const priority = searchParams.get("priority") || "";
+
+    const where: any = {};
     if (user.schoolId) where.schoolId = user.schoolId;
+    if (priority) where.priority = priority;
 
-    const orFilters: Record<string, unknown>[] = [
-      { targetRole: null },
-      { targetRole: user.role },
-    ];
-    if (user.departmentId) {
-      orFilters.push({ targetDepartmentId: user.departmentId });
-    }
-    where.OR = orFilters;
-
-    const notifications = await prisma.notification.findMany({
-      where,
-      include: {
-        sender: { select: { id: true, name: true } },
-        reads: {
-          where: { userId: user.id },
-          select: { readAt: true },
+    const [notifications, total] = await Promise.all([
+      prisma.notification.findMany({
+        where,
+        include: {
+          sender: { select: { id: true, name: true, role: true } },
+          _count: { select: { reads: true } },
         },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit,
+      }),
+      prisma.notification.count({ where }),
+    ]);
+
+    // Count unread for current user
+    const unreadCount = await prisma.notification.count({
+      where: {
+        ...where,
+        reads: { none: { userId: user.id } },
       },
-      orderBy: { createdAt: "desc" },
     });
 
-    const notificationsWithStatus = notifications.map((n) => ({
-      ...n,
-      isRead: n.reads.length > 0,
-    }));
-
-    const unreadCount = notificationsWithStatus.filter((n) => !n.isRead).length;
-
     return NextResponse.json({
-      notifications: notificationsWithStatus,
+      notifications,
       unreadCount,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit),
     });
   } catch (error) {
     console.error("Error fetching notifications:", error);
@@ -66,31 +69,29 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await requireAuth();
+    const authResult = await requireRoles(NOTIFICATION_ROLES);
     if (authResult instanceof Response) return authResult;
     const { user } = authResult;
 
-    if (!NOTIFICATION_CREATE_ROLES.includes(user.role)) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-    }
-
     const body = await request.json();
-    const data = createNotificationSchema.parse(body);
+    const data = notificationSchema.parse(body);
 
     const notification = await prisma.notification.create({
       data: {
         title: data.title,
         content: data.content,
-        priority: data.priority || "normal",
+        priority: data.priority,
+        targetRole: data.targetRole ?? null,
+        targetDepartmentId: data.targetDepartmentId ?? null,
+        link: data.link ?? null,
         senderId: user.id,
-        targetRole: data.targetRole,
-        targetDepartmentId: data.targetDepartmentId,
-        link: data.link,
         ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
-      include: {
-        sender: { select: { id: true, name: true } },
-      },
+    });
+
+    audit.created("notification", notification.id, user.id, user.schoolId ?? undefined, {
+      title: data.title,
+      priority: data.priority,
     });
 
     return NextResponse.json({ notification }, { status: 201 });

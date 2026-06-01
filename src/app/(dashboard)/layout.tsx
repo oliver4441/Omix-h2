@@ -1,7 +1,8 @@
+"use client";
+
+import { SessionProvider } from "next-auth/react";
 import Sidebar from "@/components/ui/Sidebar";
 import Header from "@/components/ui/Header";
-
-export const dynamic = "force-dynamic";
 
 export default function DashboardLayout({
   children,
@@ -9,14 +10,14 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden">
-      <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden lg:ml-64">
-        <Header />
-        <main className="flex-1 overflow-y-auto p-6">
-          {children}
-        </main>
+    <SessionProvider>
+      <div className="min-h-screen bg-surface bg-animate">
+        <Sidebar />
+        <div className="lg:ml-64">
+          <Header />
+          <main className="p-4 lg:p-6 pt-20 lg:pt-6">{children}</main>
+        </div>
       </div>
-    </div>
+    </SessionProvider>
   );
 }

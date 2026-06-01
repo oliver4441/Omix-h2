@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
 import { audit } from "@/lib/local-audit";
-import { requireRoles } from "@/lib/auth-helper";
+import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
 const teacherSchema = z.object({
   employeeNo: z.string().min(1, "Employee number is required"),
@@ -15,7 +15,7 @@ const teacherSchema = z.object({
   specialization: z.string().optional().nullable(),
   dateOfBirth: z.string().optional().nullable(),
   address: z.string().optional().nullable(),
-  status: z.enum(["active", "inactive"]).default("active"),
+  status: z.enum(["active", "on_leave", "resigned", "terminated"]).default("active"),
 });
 
 const TEACHER_MODIFY_ROLES = ["super_admin", "school_admin"];
@@ -27,14 +27,12 @@ export async function GET(request: NextRequest) {
     const { user } = authResult;
 
     const { searchParams } = new URL(request.url);
+    const { page, limit, skip } = parsePagination(searchParams);
     const search = searchParams.get("search") || "";
     const status = searchParams.get("status") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
-    const skip = (page - 1) * limit;
+    const specialization = searchParams.get("specialization") || "";
 
-    const where: Record<string, unknown> = { deletedAt: null };
-
+    const where: any = { deletedAt: null };
     if (user.schoolId) where.schoolId = user.schoolId;
 
     if (search) {
@@ -48,14 +46,15 @@ export async function GET(request: NextRequest) {
     }
 
     if (status) where.status = status;
+    if (specialization) where.specialization = { contains: specialization };
 
     const [teachers, total] = await Promise.all([
       prisma.teacher.findMany({
         where,
         include: {
-          _count: {
-            select: { classes: true, subjects: true },
-          },
+          classes: { select: { id: true, name: true, code: true } },
+          subjects: { select: { id: true, name: true, code: true } },
+          _count: { select: { classes: true, subjects: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -93,13 +92,13 @@ export async function POST(request: NextRequest) {
         employeeNo: data.employeeNo,
         firstName: data.firstName,
         lastName: data.lastName,
-        gender: data.gender,
-        phone: data.phone,
+        gender: data.gender ?? null,
+        phone: data.phone ?? null,
         email: data.email || null,
-        qualification: data.qualification,
-        specialization: data.specialization,
+        qualification: data.qualification ?? null,
+        specialization: data.specialization ?? null,
         dateOfBirth: data.dateOfBirth ? new Date(data.dateOfBirth) : null,
-        address: data.address,
+        address: data.address ?? null,
         status: data.status,
         ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },

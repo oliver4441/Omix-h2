@@ -103,6 +103,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           schoolName: user.school?.name ?? null,
           schoolSlug: user.school?.slug ?? null,
           mfaEnabled: user.mfaEnabled,
+          departmentId: user.departmentId,
         };
       },
     }),
@@ -116,6 +117,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.schoolName = (user as any).schoolName ?? null;
         token.schoolSlug = (user as any).schoolSlug ?? null;
         token.mfaEnabled = (user as any).mfaEnabled ?? false;
+        token.departmentId = (user as any).departmentId ?? null;
         
         if (account?.provider === "credentials" && token.mfaEnabled) {
           token.mfaRequired = true;

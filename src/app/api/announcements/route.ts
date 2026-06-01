@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { audit } from "@/lib/local-audit";
 import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
 const announcementSchema = z.object({
   title: z.string().min(1, "Title is required"),
   content: z.string().min(1, "Content is required"),
   priority: z.enum(["low", "normal", "high", "urgent"]).default("normal"),
-  target: z.enum(["all", "students", "teachers", "class"]).default("all"),
+  target: z.enum(["all", "teachers", "students", "parents"]).default("all"),
   classId: z.string().optional().nullable(),
 });
 
@@ -21,22 +22,19 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const { page, limit, skip } = parsePagination(searchParams);
-    const target = searchParams.get("target") || "";
     const priority = searchParams.get("priority") || "";
+    const target = searchParams.get("target") || "";
 
-    const where: Record<string, unknown> = {};
-
-    if (target) where.target = target;
-    if (priority) where.priority = priority;
+    const where: any = {};
     if (user.schoolId) where.schoolId = user.schoolId;
+    if (priority) where.priority = priority;
+    if (target) where.target = target;
 
     const [announcements, total] = await Promise.all([
       prisma.announcement.findMany({
         where,
         include: {
-          author: {
-            select: { id: true, name: true, email: true, role: true },
-          },
+          author: { select: { id: true, name: true, role: true } },
         },
         orderBy: { createdAt: "desc" },
         skip,
@@ -45,18 +43,8 @@ export async function GET(request: NextRequest) {
       prisma.announcement.count({ where }),
     ]);
 
-    const priorityWeight: Record<string, number> = {
-      urgent: 0, high: 1, normal: 2, low: 3,
-    };
-
-    const sorted = announcements.sort(
-      (a, b) =>
-        (priorityWeight[a.priority] ?? 2) - (priorityWeight[b.priority] ?? 2) ||
-        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-    );
-
     return NextResponse.json({
-      announcements: sorted,
+      announcements,
       total,
       page,
       totalPages: Math.ceil(total / limit),
@@ -83,17 +71,17 @@ export async function POST(request: NextRequest) {
       data: {
         title: data.title,
         content: data.content,
-        authorId: user.id,
         priority: data.priority,
         target: data.target,
         classId: data.classId ?? null,
-        schoolId: user.schoolId ?? null,
+        authorId: user.id,
+        ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
-      include: {
-        author: {
-          select: { id: true, name: true, email: true, role: true },
-        },
-      },
+    });
+
+    audit.created("announcement", announcement.id, user.id, user.schoolId ?? undefined, {
+      title: data.title,
+      priority: data.priority,
     });
 
     return NextResponse.json({ announcement }, { status: 201 });

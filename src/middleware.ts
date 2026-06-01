@@ -15,7 +15,7 @@ function getSubdomain(host: string | null): string | null {
   }
 
   // Localhost with subdomain: school.localhost:3000
-  if (host.includes("localhost")) {
+  if (host.startsWith("localhost") || host.startsWith("127.0.0.1")) {
     if (parts.length >= 3) return parts[0];
     return null;
   }

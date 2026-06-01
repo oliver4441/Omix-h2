@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import { audit } from "@/lib/local-audit";
 import { requireRoles, parsePagination } from "@/lib/auth-helper";
 
 const examSchema = z.object({
@@ -25,21 +26,18 @@ export async function GET(request: NextRequest) {
     const academicYear = searchParams.get("academicYear") || "";
     const term = searchParams.get("term") || "";
 
-    const where: Record<string, unknown> = {};
-
+    const where: any = {};
+    if (user.schoolId) where.schoolId = user.schoolId;
     if (academicYear) where.academicYear = academicYear;
     if (term) where.term = term;
-    if (user.schoolId) where.schoolId = user.schoolId;
 
     const [exams, total] = await Promise.all([
       prisma.exam.findMany({
         where,
         include: {
-          _count: {
-            select: { grades: true },
-          },
+          _count: { select: { grades: true } },
         },
-        orderBy: [{ academicYear: "desc" }, { startDate: "desc" }],
+        orderBy: { startDate: "desc" },
         skip,
         take: limit,
       }),
@@ -77,9 +75,14 @@ export async function POST(request: NextRequest) {
         academicYear: data.academicYear,
         startDate: new Date(data.startDate),
         endDate: new Date(data.endDate),
-        description: data.description,
+        description: data.description ?? null,
         ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
+    });
+
+    audit.created("exam", exam.id, user.id, user.schoolId ?? undefined, {
+      name: data.name,
+      term: data.term,
     });
 
     return NextResponse.json({ exam }, { status: 201 });
