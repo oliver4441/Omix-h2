@@ -1,9 +1,8 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { Pool } from "ws";
 
-// ─── Primary Database Client (Neon PostgreSQL) ───
-// Uses Neon serverless driver adapter for connection pooling
+// ─── Primary Database Client (Supabase PostgreSQL) ───
+// Uses standard PrismaClient with Supabase connection pooling.
+// DATABASE_URL (pgBouncer) for queries, DIRECT_URL for migrations.
 // ────────────────────────────────────────────────────────────────────────
 
 const globalForPrisma = globalThis as unknown as {
@@ -11,12 +10,6 @@ const globalForPrisma = globalThis as unknown as {
 };
 
 function createPrismaClient() {
-  if (process.env.DATABASE_URL) {
-    const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const adapter = new PrismaNeon(pool);
-    return new PrismaClient({ adapter });
-  }
-  // Fallback for local dev
   return new PrismaClient();
 }
 
