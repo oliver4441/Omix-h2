@@ -4,9 +4,9 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "npx prisma generate && npx prisma generate --schema=prisma/local-schema.prisma && next build",
+    "build": "prisma generate && prisma generate --schema=prisma/local-schema.prisma && next build",
     "next-build": "next build",
-    "start": "npx prisma db push && npx prisma db seed || true && next start",
+    "start": "prisma db push && next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
