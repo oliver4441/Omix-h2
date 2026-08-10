@@ -83,7 +83,7 @@ npm run dev
 4. Set environment variables:
    - `NEXTAUTH_SECRET` — generate a random string
    - `NEXTAUTH_URL` — your Render URL
-   - `OPENCODE_ZEN_API_KEY` — your OpenCode Zen API key (for AI Chat)
+   - `OPENROUTER_API_KEY` — your OpenRouter API key (for AI Chat)
 5. Add a **Disk** mount at `/var/data` for persistent SQLite storage
 
 ## 📦 API Endpoints

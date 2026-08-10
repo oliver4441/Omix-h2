@@ -60,11 +60,15 @@ export const DEFAULT_PAGE_SIZE = 50;
 export const MAX_PAGE_SIZE = 100;
 
 export function parsePagination(searchParams: URLSearchParams) {
-  const page = Math.max(1, parseInt(searchParams.get("page") || "1"));
-  const limit = Math.min(
-    MAX_PAGE_SIZE,
-    Math.max(1, parseInt(searchParams.get("limit") || String(DEFAULT_PAGE_SIZE)))
+  const rawPage = parseInt(searchParams.get("page") || "1");
+  const rawLimit = parseInt(
+    searchParams.get("limit") || String(DEFAULT_PAGE_SIZE)
   );
+  // Guard against NaN from non-numeric query params
+  const page = Number.isFinite(rawPage) ? Math.max(1, rawPage) : 1;
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(MAX_PAGE_SIZE, Math.max(1, rawLimit))
+    : DEFAULT_PAGE_SIZE;
   const skip = (page - 1) * limit;
   return { page, limit, skip };
 }

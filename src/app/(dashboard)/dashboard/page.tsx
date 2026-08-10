@@ -36,8 +36,59 @@ export default function DashboardPage() {
       try {
         const res = await fetch("/api/dashboard/stats");
         if (!res.ok) throw new Error("Failed to fetch dashboard stats");
-        const data = await res.json();
-        setStats(data);
+        const data = (await res.json()) as {
+          totalStudents?: number;
+          totalTeachers?: number;
+          totalClasses?: number;
+          attendanceRate?: number;
+          feeCollectionByMonth?: { month: string; year: number; total: number }[];
+          studentEnrollmentByClass?: {
+            id: string;
+            name: string;
+            code: string;
+            studentCount: number;
+          }[];
+          recentActivity?: {
+            id: string;
+            type: string;
+            description: string;
+            date: string;
+          }[];
+        };
+
+        // Map the API response into the shape this page renders
+        setStats({
+          totalStudents: data.totalStudents ?? 0,
+          totalTeachers: data.totalTeachers ?? 0,
+          totalClasses: data.totalClasses ?? 0,
+          attendanceRate: data.attendanceRate ?? 0,
+          monthlyFees: (data.feeCollectionByMonth || []).map((f) => ({
+            month: `${f.month} ${String(f.year).slice(2)}`,
+            amount: f.total,
+          })),
+          enrollmentByClass: (data.studentEnrollmentByClass || []).map((c) => ({
+            name: c.name,
+            count: c.studentCount,
+          })),
+          recentActivity: (data.recentActivity || []).map((a) => ({
+            id: a.id,
+            message: a.description,
+            time: new Date(a.date).toLocaleString("en-KE", {
+              day: "numeric",
+              month: "short",
+              hour: "numeric",
+              minute: "2-digit",
+            }),
+            type:
+              a.type === "payment_received"
+                ? "payment"
+                : a.type === "student_created"
+                  ? "student"
+                  : a.type === "teacher_created"
+                    ? "teacher"
+                    : a.type,
+          })),
+        });
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong");
         // Set fallback data for display

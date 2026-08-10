@@ -34,6 +34,7 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           sender: { select: { id: true, name: true, role: true } },
+          reads: { select: { userId: true } },
           _count: { select: { reads: true } },
         },
         orderBy: { createdAt: "desc" },
@@ -51,8 +52,15 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // Flatten reads into a per-user isRead flag the UI expects
+    const items = notifications.map((n: any) => ({
+      ...n,
+      reads: undefined,
+      isRead: n.reads?.some((r: { userId: string }) => r.userId === user.id) ?? false,
+    }));
+
     return NextResponse.json({
-      notifications,
+      notifications: items,
       unreadCount,
       total,
       page,

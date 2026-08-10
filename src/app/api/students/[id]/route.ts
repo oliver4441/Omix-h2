@@ -65,6 +65,11 @@ export async function PATCH(
       }
     }
 
+    // dateOfBirth is a DateTime column — convert string to Date like the POST route does
+    if (updateData.dateOfBirth !== undefined && updateData.dateOfBirth !== null) {
+      updateData.dateOfBirth = new Date(updateData.dateOfBirth as string);
+    }
+
     const student = await prisma.student.update({ where: { id }, data: updateData });
 
     audit.updated("student", id, user.id, user.schoolId ?? undefined);

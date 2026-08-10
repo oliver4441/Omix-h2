@@ -56,8 +56,10 @@ function LoginForm() {
 
   useEffect(() => {
     const host = window.location.hostname;
+    // Preview/sandbox hosts are not school subdomains
+    if (host.endsWith(".e2b.app") || host.includes("e2b.app")) return;
     const slug = host.split(".")[0];
-    if (slug && slug !== "localhost" && slug !== "www") {
+    if (slug && slug !== "localhost" && slug !== "www" && slug !== "127.0.0.1") {
       setSchool({ 
         name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()), 
         slug 
@@ -108,7 +110,7 @@ function LoginForm() {
     setError("");
 
     try {
-      const result = await signIn("email", {
+      const result = await signIn("nodemailer", {
         email,
         callbackUrl: callbackUrl || "/dashboard",
         redirect: false,

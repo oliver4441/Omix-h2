@@ -131,24 +131,51 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, user, token }) {
       if (session.user) {
-        // For database strategy, the 'user' object is available
-        // For JWT strategy, the 'token' object is available
-        const u = user || token;
-        (session.user as any).role = (u as any).role;
+        // Database strategy: `user` is the User row and `session` carries the raw Session row
+        // (including the mfaRequired/mfaVerified columns). JWT strategy: `token` carries the
+        // custom claims set in the jwt callback above.
+        const u = (user || token) as any;
+        const rawSession = session as any;
+
         (session.user as any).id = u.id;
-        (session.user as any).schoolId = (u as any).schoolId;
-        (session.user as any).schoolName = (u as any).schoolName;
-        (session.user as any).schoolSlug = (u as any).schoolSlug;
-        (session.user as any).mfaRequired = (u as any).mfaRequired;
-        (session.user as any).mfaVerified = (u as any).mfaVerified;
+        (session.user as any).role = u.role;
+        (session.user as any).schoolId = u.schoolId ?? null;
+        (session.user as any).departmentId = u.departmentId ?? null;
+        (session.user as any).schoolName = u.schoolName ?? null;
+        (session.user as any).schoolSlug = u.schoolSlug ?? null;
+
+        // MFA state. The User row knows whether MFA is enabled; the Session row tracks
+        // whether this session has completed verification.
+        const mfaEnabled = !!u.mfaEnabled;
+        const mfaVerified =
+          rawSession.mfaVerified ??
+          (user ? !mfaEnabled : !!u.mfaVerified);
+        (session.user as any).mfaRequired = mfaEnabled;
+        (session.user as any).mfaVerified = mfaVerified;
+
+        // The User row (database strategy) does not carry the school name/slug — fetch it
+        // once so the UI and MFA setup can show it. Skipped for JWT strategy where the
+        // jwt callback already populated these fields on the token.
+        if (u.schoolId && !u.schoolName) {
+          try {
+            const school = await prisma.school.findUnique({
+              where: { id: u.schoolId },
+              select: { name: true, slug: true },
+            });
+            if (school) {
+              (session.user as any).schoolName = school.name;
+              (session.user as any).schoolSlug = school.slug;
+            }
+          } catch (error) {
+            console.error("Failed to load school for session:", error);
+          }
+        }
       }
       return session;
     },
   },
   pages: {
     signIn: "/login",
-    verifyRequest: "/auth/verify-request",
-    error: "/auth/error",
   },
   session: {
     strategy: "database",

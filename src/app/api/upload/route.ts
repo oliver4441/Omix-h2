@@ -7,6 +7,7 @@ import fs from "fs/promises";
 
 const UPLOAD_DIR = path.join(process.cwd(), "uploads");
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+const ALLOWED_RECORDING_TYPES = ["document", "image", "voice"];
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
@@ -42,6 +43,27 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
+    }
+
+    if (!ALLOWED_RECORDING_TYPES.includes(type)) {
+      return NextResponse.json(
+        { error: `Invalid recording type: ${type}` },
+        { status: 400 }
+      );
+    }
+
+    // If a meetingId is provided, verify the meeting exists and belongs to this user's school
+    if (meetingId) {
+      const meeting = await prisma.boardMeeting.findFirst({
+        where: {
+          id: meetingId,
+          ...(user.schoolId ? { schoolId: user.schoolId } : {}),
+        },
+        select: { id: true },
+      });
+      if (!meeting) {
+        return NextResponse.json({ error: "Meeting not found" }, { status: 404 });
+      }
     }
 
     if (file.size > MAX_FILE_SIZE) {

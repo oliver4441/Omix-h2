@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@prisma/client";
 import { requireRoles } from "@/lib/auth-helper";
 
 const LIBRARY_ROLES = ["super_admin", "school_admin", "librarian"];
@@ -21,7 +22,7 @@ export async function PUT(
     if (!existing) return NextResponse.json({ error: "Checkout not found" }, { status: 404 });
     if (existing.status === "returned") return NextResponse.json({ error: "Book already returned" }, { status: 400 });
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const checkout = await tx.bookCheckout.update({
         where: { id },
         data: { returnDate: new Date(), status: "returned" },

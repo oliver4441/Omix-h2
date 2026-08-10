@@ -136,7 +136,7 @@ export async function GET(request: NextRequest) {
       })),
       ...recentPayments.map((p: any) => ({
         type: "payment_received" as const,
-        description: `Payment of $${p.amount.toFixed(2)} received from ${p.student.firstName} ${p.student.lastName}`,
+        description: `Payment of KSh ${p.amount.toFixed(2)} received from ${p.student.firstName} ${p.student.lastName}`,
         date: p.paymentDate,
         id: p.id,
       })),

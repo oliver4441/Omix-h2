@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { requireRoles } from "@/lib/auth-helper";
 
 const logActionSchema = z.object({
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     });
     if (!apparatus) return NextResponse.json({ error: "Apparatus not found" }, { status: 404 });
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const updateData: Record<string, number | { increment: number } | { decrement: number }> = {};
 
       switch (data.action) {

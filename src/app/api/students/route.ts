@@ -33,8 +33,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search") || "";
     const classId = searchParams.get("classId") || "";
     const status = searchParams.get("status") || "";
-    const page = parseInt(searchParams.get("page") || "1");
-    const limit = parseInt(searchParams.get("limit") || "50");
+    const rawPage = parseInt(searchParams.get("page") || "1");
+    const rawLimit = parseInt(searchParams.get("limit") || "50");
+    // Guard against NaN from non-numeric query params
+    const page = Number.isFinite(rawPage) ? Math.max(1, rawPage) : 1;
+    const limit = Number.isFinite(rawLimit)
+      ? Math.min(100, Math.max(1, rawLimit))
+      : 50;
     const skip = (page - 1) * limit;
 
     const where: any = { deletedAt: null };

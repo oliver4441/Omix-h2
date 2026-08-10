@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 import { requireRoles } from "@/lib/auth-helper";
 
 const checkoutSchema = z.object({
@@ -56,7 +57,7 @@ export async function POST(request: NextRequest) {
     if (!book) return NextResponse.json({ error: "Book not found" }, { status: 404 });
     if (book.available < 1) return NextResponse.json({ error: "No copies available for checkout" }, { status: 400 });
 
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const checkout = await tx.bookCheckout.create({
         data: {
           bookId: data.bookId, admissionNo: data.admissionNo,

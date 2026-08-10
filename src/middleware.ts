@@ -2,10 +2,12 @@ import { auth } from "@/lib/auth";
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
-const publicPaths = ["/login", "/register", "/api/auth"];
-
 function getSubdomain(host: string | null): string | null {
   if (!host) return null;
+
+  // Sandbox/preview hosts (e.g. 3000-abc123.e2b.app) are not school subdomains
+  if (host.endsWith(".e2b.app") || host.includes("e2b.app")) return null;
+
   const parts = host.split(".");
 
   // Render deployment: school-name.onrender.com (3 parts, has "render")

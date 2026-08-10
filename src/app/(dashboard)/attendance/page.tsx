@@ -111,7 +111,8 @@ export default function AttendancePage() {
       if (attRes.ok) {
         const attData = await attRes.json();
         const records: Record<string, AttendanceStatus> = {};
-        (attData.records || []).forEach(
+        // /api/attendance returns the list under `attendance`
+        (attData.attendance || []).forEach(
           (r: { studentId: string; status: AttendanceStatus }) => {
             records[r.studentId] = r.status;
           }

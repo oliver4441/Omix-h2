@@ -9,7 +9,7 @@ const meetingSchema = z.object({
   startTime: z.string().min(1, "Start time is required"),
   endTime: z.string().optional().nullable(),
   venue: z.string().optional().nullable(),
-  status: z.enum(["scheduled", "in_progress", "completed", "cancelled"]).default("scheduled"),
+  status: z.enum(["scheduled", "ongoing", "completed", "cancelled"]).default("scheduled"),
 });
 
 const BOARD_ROLES = ["super_admin", "school_admin", "board_member"];

@@ -54,12 +54,23 @@ export async function POST(request: NextRequest) {
       where: { userId: user.id },
     });
 
+    // boardMemberId references BoardMember.id, not User.id — never fall back to user.id.
+    // Auto-provision the board membership so admins/board members can submit suggestions.
+    const member = boardMember ?? (await prisma.boardMember.create({
+      data: {
+        userId: user.id,
+        role: "member",
+        isActive: true,
+        schoolId: user.schoolId,
+      },
+    }));
+
     const suggestion = await prisma.boardSuggestion.create({
       data: {
         title: data.title,
         content: data.content,
         category: data.category,
-        boardMemberId: boardMember?.id ?? user.id,
+        boardMemberId: member.id,
         meetingId: data.meetingId ?? null,
         ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },

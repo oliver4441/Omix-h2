@@ -4,10 +4,7 @@ import { requireRoles } from "@/lib/auth-helper";
 
 const NOTIFICATION_READ_ROLES = ["super_admin", "school_admin", "teacher", "department_head", "bursar", "librarian", "lab_technician", "computer_lab", "class_teacher"];
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+async function markAsRead(request: NextRequest, params: Promise<{ id: string }>) {
   try {
     const authResult = await requireRoles(NOTIFICATION_READ_ROLES);
     if (authResult instanceof Response) return authResult;
@@ -47,4 +44,19 @@ export async function PATCH(
       { status: 500 }
     );
   }
+}
+
+export async function PATCH(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return markAsRead(request, params);
+}
+
+// The notifications UI marks notifications as read with POST
+export async function POST(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  return markAsRead(request, params);
 }

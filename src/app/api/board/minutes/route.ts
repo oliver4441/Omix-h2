@@ -22,7 +22,8 @@ export async function GET(request: NextRequest) {
 
     const where: Record<string, unknown> = {};
     if (meetingId) where.meetingId = meetingId;
-    else if (user.schoolId) where.schoolId = user.schoolId;
+    // Always scope to the user's school, even when filtering by meetingId
+    if (user.schoolId) where.meeting = { schoolId: user.schoolId };
 
     const minutes = await prisma.meetingMinute.findMany({
       where,
@@ -53,12 +54,23 @@ export async function POST(request: NextRequest) {
       where: { userId: user.id },
     });
 
+    // recordedById references BoardMember.id, not User.id — never fall back to user.id.
+    // Auto-provision the board membership so admins/board members can record minutes.
+    const member = boardMember ?? (await prisma.boardMember.create({
+      data: {
+        userId: user.id,
+        role: "member",
+        isActive: true,
+        schoolId: user.schoolId,
+      },
+    }));
+
     const minute = await prisma.meetingMinute.create({
       data: {
         meetingId: data.meetingId,
         content: data.content,
         agendaItemId: data.agendaItemId ?? null,
-        recordedById: boardMember?.id ?? user.id,
+        recordedById: member.id,
         ...(user.schoolId ? { schoolId: user.schoolId } : {}),
       },
       include: {
