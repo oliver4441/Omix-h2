@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Filter } from "lucide-react";
+import { Plus, Filter, Download } from "lucide-react";
 import DataTable from "@/components/ui/DataTable";
 import { cn } from "@/lib/utils";
 
@@ -120,13 +120,23 @@ export default function TeachersPage() {
             Manage teacher records and assignments
           </p>
         </div>
-        <button
-          onClick={() => router.push("/teachers/new")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-omix-600 to-omix-500 hover:from-omix-500 hover:to-omix-400 text-white font-medium rounded-xl transition-all duration-300 glow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Add Teacher
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/export?entity=teachers"
+            title="Export teachers to CSV"
+            className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-border hover:border-omix-500/30 text-gray-300 font-medium rounded-xl transition-all"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </a>
+          <button
+            onClick={() => router.push("/teachers/new")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-omix-600 to-omix-500 hover:from-omix-500 hover:to-omix-400 text-white font-medium rounded-xl transition-all duration-300 glow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Teacher
+          </button>
+        </div>
       </div>
 
       {/* Filters */}

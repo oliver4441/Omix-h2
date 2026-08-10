@@ -6,10 +6,11 @@
     "dev": "next dev",
     "build": "prisma generate && prisma generate --schema=prisma/local-schema.prisma && next build",
     "next-build": "next build",
-    "start": "prisma db push && next start",
+    "start": "prisma db push && prisma db push --schema=prisma/local-schema.prisma && next start",
     "lint": "eslint",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
+    "db:push:local": "prisma db push --schema=prisma/local-schema.prisma",
     "db:seed": "tsx prisma/seed.ts",
     "db:studio": "prisma studio",
     "setup": "prisma generate && prisma db push && tsx prisma/seed.ts"

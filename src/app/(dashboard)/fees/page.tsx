@@ -16,6 +16,7 @@ import {
   Receipt,
   PiggyBank,
   CalendarDays,
+  Download,
 } from "lucide-react";
 import { cn, formatCurrency, formatDate } from "@/lib/utils";
 import DataTable from "@/components/ui/DataTable";
@@ -304,13 +305,23 @@ export default function FeesPage() {
             Manage fee structures and record payments
           </p>
         </div>
-        <button
-          onClick={openPaymentModal}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-omix-600 to-omix-500 hover:from-omix-500 hover:to-omix-400 text-white font-medium rounded-xl transition-all duration-300 glow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Record Payment
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/export?entity=fees"
+            title="Export fee payments to CSV"
+            className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-border hover:border-omix-500/30 text-gray-300 font-medium rounded-xl transition-all"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </a>
+          <button
+            onClick={openPaymentModal}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-omix-600 to-omix-500 hover:from-omix-500 hover:to-omix-400 text-white font-medium rounded-xl transition-all duration-300 glow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Record Payment
+          </button>
+        </div>
       </div>
 
       {/* Stats */}

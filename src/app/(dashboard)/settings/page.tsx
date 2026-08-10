@@ -13,6 +13,7 @@ import {
   Phone,
   MapPin,
   Globe,
+  Calendar,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -29,6 +30,10 @@ interface SchoolData {
   email: string;
   website: string;
   motto: string;
+  academicYear: string;
+  currentTerm: string;
+  termStart: string;
+  termEnd: string;
 }
 
 export default function SettingsPage() {
@@ -50,6 +55,10 @@ export default function SettingsPage() {
     email: "",
     website: "",
     motto: "",
+    academicYear: new Date().getFullYear().toString(),
+    currentTerm: "Term 1",
+    termStart: "",
+    termEnd: "",
   });
   const [schoolLoading, setSchoolLoading] = useState(true);
 
@@ -99,6 +108,10 @@ export default function SettingsPage() {
           email: data.school?.email || "",
           website: data.school?.website || "",
           motto: data.school?.motto || "",
+          academicYear: data.school?.academicYear || new Date().getFullYear().toString(),
+          currentTerm: data.school?.currentTerm || "Term 1",
+          termStart: data.school?.termStart || "",
+          termEnd: data.school?.termEnd || "",
         });
       } else {
         // Set defaults
@@ -109,6 +122,10 @@ export default function SettingsPage() {
           email: "info@omixsystems.com",
           website: "https://omixsystems.com",
           motto: "Empowering Education Through Technology",
+          academicYear: new Date().getFullYear().toString(),
+          currentTerm: "Term 1",
+          termStart: "",
+          termEnd: "",
         });
       }
     } catch {
@@ -119,6 +136,10 @@ export default function SettingsPage() {
         email: "info@omixsystems.com",
         website: "https://omixsystems.com",
         motto: "Empowering Education Through Technology",
+        academicYear: new Date().getFullYear().toString(),
+        currentTerm: "Term 1",
+        termStart: "",
+        termEnd: "",
       });
     } finally {
       setSchoolLoading(false);
@@ -454,6 +475,72 @@ export default function SettingsPage() {
                           placeholder="Enter school motto"
                           className="w-full px-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none input-glow transition-all"
                         />
+                      </div>
+                    </div>
+
+                    {/* Academic Year & Term */}
+                    <div className="pt-6 border-t border-border">
+                      <h3 className="text-sm font-semibold text-white mb-4 flex items-center gap-2">
+                        <Calendar className="w-4 h-4 text-omix-400" />
+                        Academic Year & Term
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Current Academic Year
+                          </label>
+                          <input
+                            type="text"
+                            value={school.academicYear}
+                            onChange={(e) =>
+                              setSchool((prev) => ({ ...prev, academicYear: e.target.value }))
+                            }
+                            placeholder="2026"
+                            className="w-full px-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-gray-200 placeholder-gray-500 focus:outline-none input-glow transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Current Term
+                          </label>
+                          <select
+                            value={school.currentTerm}
+                            onChange={(e) =>
+                              setSchool((prev) => ({ ...prev, currentTerm: e.target.value }))
+                            }
+                            className="w-full px-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-gray-200 focus:outline-none input-glow transition-all"
+                          >
+                            <option value="Term 1">Term 1 (Jan–Apr)</option>
+                            <option value="Term 2">Term 2 (May–Aug)</option>
+                            <option value="Term 3">Term 3 (Sep–Dec)</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Term Start Date
+                          </label>
+                          <input
+                            type="date"
+                            value={school.termStart}
+                            onChange={(e) =>
+                              setSchool((prev) => ({ ...prev, termStart: e.target.value }))
+                            }
+                            className="w-full px-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-gray-200 focus:outline-none input-glow transition-all"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-1.5">
+                            Term End Date
+                          </label>
+                          <input
+                            type="date"
+                            value={school.termEnd}
+                            onChange={(e) =>
+                              setSchool((prev) => ({ ...prev, termEnd: e.target.value }))
+                            }
+                            className="w-full px-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-gray-200 focus:outline-none input-glow transition-all"
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>

@@ -11,6 +11,7 @@ import {
   Loader2,
   CheckCircle2,
   X,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import DataTable from "@/components/ui/DataTable";
@@ -204,6 +205,14 @@ export default function StudentsPage() {
             <Plus className="w-4 h-4" />
             Quick Add
           </button>
+          <a
+            href="/api/export?entity=students"
+            title="Export students to CSV"
+            className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-border hover:border-omix-500/30 text-gray-300 font-medium rounded-xl transition-all"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </a>
         </div>
       </div>
 

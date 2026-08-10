@@ -11,6 +11,7 @@ import {
   GraduationCap,
   BookOpen,
   ChevronDown,
+  Download,
 } from "lucide-react";
 import {
   BarChart,
@@ -359,6 +360,17 @@ export default function GradesPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          <div className="flex items-end justify-end">
+            <a
+              href={`/api/export?entity=grades${selectedClass ? `&classId=${selectedClass}` : ""}${selectedExam ? `&examId=${selectedExam}` : ""}`}
+              title="Export grades to CSV"
+              className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-border hover:border-omix-500/30 text-gray-300 font-medium rounded-xl transition-all"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </a>
           </div>
         </div>
       </div>

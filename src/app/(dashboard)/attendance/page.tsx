@@ -12,6 +12,7 @@ import {
   HelpCircle,
   Save,
   Loader2,
+  Download,
 } from "lucide-react";
 import { cn, formatDate } from "@/lib/utils";
 import StatCard from "@/components/ui/StatCard";
@@ -256,6 +257,14 @@ export default function AttendancePage() {
           </div>
 
           <div className="flex items-end gap-3 w-full md:w-auto">
+            <a
+              href={`/api/export?entity=attendance${selectedClass ? `&classId=${selectedClass}` : ""}${date ? `&date=${date}` : ""}`}
+              title="Export attendance to CSV"
+              className="px-4 py-2.5 bg-surface-2 border border-border rounded-xl text-sm text-gray-300 hover:text-gray-200 hover:border-omix-500/30 transition-all flex items-center gap-2"
+            >
+              <Download className="w-4 h-4" />
+              Export
+            </a>
             <button
               onClick={loadStudents}
               disabled={!selectedClass || studentsLoading}

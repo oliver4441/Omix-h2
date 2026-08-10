@@ -16,6 +16,7 @@ import {
   Bell,
   Menu,
   X,
+  Wrench,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
@@ -28,6 +29,7 @@ const sidebarItems = [
   { href: "/attendance", label: "Attendance", icon: ClipboardCheck },
   { href: "/grades", label: "Grades", icon: FileSpreadsheet },
   { href: "/fees", label: "Fees", icon: DollarSign },
+  { href: "/operations", label: "Operations", icon: Wrench },
   { href: "/ai", label: "AI Assistant", icon: Bot },
   { href: "/announcements", label: "Announcements", icon: Bell },
   { href: "/settings", label: "Settings", icon: Settings },

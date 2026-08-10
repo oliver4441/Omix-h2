@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Plus, BookOpen, Users, GraduationCap } from "lucide-react";
+import { Plus, BookOpen, Users, GraduationCap, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface ClassData {
@@ -72,13 +72,23 @@ export default function ClassesPage() {
             Manage classes, timetables, and student rosters
           </p>
         </div>
-        <button
-          onClick={() => router.push("/classes/new")}
-          className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-omix-600 to-omix-500 hover:from-omix-500 hover:to-omix-400 text-white font-medium rounded-xl transition-all duration-300 glow-sm"
-        >
-          <Plus className="w-4 h-4" />
-          Add Class
-        </button>
+        <div className="flex items-center gap-3">
+          <a
+            href="/api/export?entity=classes"
+            title="Export classes to CSV"
+            className="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border border-border hover:border-omix-500/30 text-gray-300 font-medium rounded-xl transition-all"
+          >
+            <Download className="w-4 h-4" />
+            Export
+          </a>
+          <button
+            onClick={() => router.push("/classes/new")}
+            className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-omix-600 to-omix-500 hover:from-omix-500 hover:to-omix-400 text-white font-medium rounded-xl transition-all duration-300 glow-sm"
+          >
+            <Plus className="w-4 h-4" />
+            Add Class
+          </button>
+        </div>
       </div>
 
       {/* Error */}
