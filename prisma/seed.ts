@@ -112,10 +112,10 @@ async function main() {
           student: { connect: { id: students[i].id } },
           subject: { connect: { id: subj.id } },
           exam: { connect: { id: exam.id } },
-          classId: classes[i%3].id,
+          class: { connect: { id: classes[i%3].id } },
           score,
           grade: score>=80?'A':score>=70?'B':score>=60?'C':score>=50?'D':'E',
-          schoolId: SID,
+          school: { connect: { id: SID } },
         },
       });
     }
